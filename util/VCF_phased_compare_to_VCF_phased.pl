@@ -33,9 +33,9 @@ my ($phased_hets2) = vcfphase::VCF_phased_to_phase_group_contig_pos_to_bases($op
 # Compare phase groups
 my $found_in_both = 0;
 my ($total_overlap, $total_same, $total_cross) = (0,0,0);
-PHASEGROUP1: foreach my $phase_group1(sort {$a<=>$b} keys %{$phased_hets1}) {
+PHASEGROUP1: foreach my $phase_group1(sort keys %{$phased_hets1}) {
 	#warn "$phase_group1 / " . scalar(keys(%phased_hets1)) . "\n";
-	PHASEGROUP2: foreach my $phase_group2(sort {$a<=>$b} keys %{$phased_hets2}) {
+	PHASEGROUP2: foreach my $phase_group2(sort keys %{$phased_hets2}) {
 		foreach my $contig(sort keys %{$$phased_hets1{$phase_group1}}) {
 			next PHASEGROUP2 if(!exists $$phased_hets2{$phase_group2}{$contig});
 

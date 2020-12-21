@@ -1,0 +1,188 @@
+All documentation for HaplotypeTools can be found at:
+
+https://github.com/rhysf/HaplotypeTools
+
+HaplotypeTools is a set of tools that can phase DNAseq data into haplotypes
+for the purposes of identifying recombination (crossovers between samples),
+identifying parental isolates or clades, or various population genetic tests.
+The tools require BioPerl and Bio::DB::HTS modules installed via cpan or cpanm.
+
+Prerequisites:
+--------------
+
+Perl
+BioPerl
+Bio::DB::HTC
+Hash::Merge
+Samtools v0.1.10 or higher (samtools.sourceforge.net)
+FastTree (http://www.microbesonline.org/fasttree/)
+
+Getting started / example pipeline for phasing individual sample:
+-----------------------------------
+
+git clone git@github.com:rhysf/HaplotypeTools.git
+cd HaplotypeTools/
+perl HaplotypeTools.pl -v unphased_sample1.vcf -b sample1.bam -f reference.fasta
+perl util/VCF_phased_to_phased_in_all.pl -v phased_sample1.vcf -f reference.fasta > phased_sample1.PIA
+perl util/VCF_phased_and_PIA_to_FASTA.pl -v phased_sample1.vcf -l phased_sample1.PIA -r reference.fasta
+perl util/FASTA_compare_sequences.pl -f phased_sample1.PIA_1.fasta -a phased_sample1.PIA_2.fasta -o a > phased_sample1.PIA.summary
+
+Example pipeline for comparing haplotypes to other genomes
+----------------------------------------------------------
+
+perl util/VCF_and_FASTA_to_consensus_FASTA.pl -v sample1.vcf -r reference.fasta
+
+Will make your consensus genomes. Next, we need to make a tabular file in the 
+following format (Name_Type_Location.tab) E.g.:
+
+Sample1	FASTA	/dir/with/your/consensus/FASTA/sample1.vcf-WGS-s-n-i-n-n-N-consensus.fasta
+Sample2	FASTA	/dir/with/your/consensus/FASTA/sample2.vcf-WGS-s-n-i-n-n-N-consensus.fasta
+Sample3	FASTA	/dir/with/your/consensus/FASTA/sample3.vcf-WGS-s-n-i-n-n-N-consensus.fasta
+...
+
+And an optional tabular file for clades/lineages E.g.:
+Sample1	clade1
+Sample2	clade1
+Sample3	clade2
+
+perl util/VCF_phased_to_phased_in_all.pl -v phased_sample1.vcf,phased_sample2.vcf,phased_sample3.vcf -f reference.fasta > phased_samples1-3.PIA.summary
+perl util/VCF_phased_and_PIA_to_FASTA.pl -v phased_sample1.vcf -l phased_samples1-3.PIA -r reference.fasta 
+perl util/Haplotype_placer.pl -p phased_samples1-3.PIA.summary -a phased_sample1.PIA_1.fasta -b phased_sample1.PIA_2.fasta -n Name_Type_Location.tab 
+
+For window plots as well:
+
+perl util/Haplotype_placer.pl -p phased_sample1.PIA.comparison -a phased_sample1.PIA_1.fasta -b phased_sample1.PIA_2.fasta -n Name_Type_Location.tab -d y -l reference.fasta
+perl util/Windows_haplotypes_to_R_figure.pl -w HaplotypeTools_windows
+
+Example pipeline for comparing phased samples
+---------------------------------------------
+
+To identify crossovers:
+
+perl util/VCF_phased_compare_to_VCF_phased.pl -a phased_sample1.vcf -b phased_sample2.vcf -o sample1_vs_sample2
+
+To locate genomic regions phased in multiple samples:
+
+perl util/VCF_phased_to_phased_in_all.pl -v phased_sample1.vcf,phased_sample2.vcf,phased_sample3.vcf -f reference.fasta -p 2 > phased_samples1-3.PIA-p-2.summary
+
+Description of example pipelines:
+--------------------------------
+
+HaplotypeTools is a set of scripts designed to phase aligned WGS data, whereby
+haplotypes are constructed from sufficient numbers of reads overlapping two or
+more bi-allelic heterozygous position. Both haplotypes will need to be recovered
+according to a cutoff (-c) in HaplotypeTools.pl. HaplotypeTools.pl can take a 
+lond time when not submitted in parallel to a cluster, so where available it should
+be run in parallel (via settings -g, -a and -q). Once phased, the VCF can be compared 
+to consensus genomes belonging to relatives in order to identify possible parental
+strains, or can be compared to other phased VCF's to look for crossovers.
+
+Genomic regions that are phased in >=1 VCF are called 'phased in any/all; PIA'.
+PIA consists of a list of regions that contains haplotypes in >=1 VCF. If only one VCF
+is used as an input, then the PIA is a summary of all haplotypes. If multiple VCFs are
+used as input, then VCFs with unphased regions may still be compared if they are homozygous. 
+By default, we -p 1, which sets the script to find haplotypes phased in any. If -p 2
+then it will restrict to only regions phased in every isolate, which is applicable for
+certain comparisons. PIA in either setting serve as an intermediate file needed to 
+extract haplotypes in FASTA format, as well as HaplotypePlacer:
+
+Haplotype_placer.pl will compare haplotypes from a phased VCF and consensus
+genomes for other isolates, and iteratively construct trees using FastTree to
+identify the nearest relative of each haplotype, which can be useful for identifying
+parents of recombinants or hybrids, as well as visualising breakpoints. The output
+includes both summaries and window files that can be plotted using the script XXX.
+
+VCF_phased_compare_to_VCF_phased.pl can be used to compare two phased VCFs and
+directly identify genomic regions that contain crossovers between them.
+
+Individual script details:
+--------------------------
+
+HaplotypeTools parameters are shown below, followed by their default settings given in [].
+Files are highlighted in <>.
+
+HaplotypeTools.pl 
+Parameters: -v <VCF> 
+            -b <BAM (sorted)> 
+            -f <reference fasta>
+Optional:   -c Cut-off percent reads supporting phase group [90]
+            -m Minimum read depth overlapping two heterozygous SNPs [4]
+	    -r Max phase length (longer=slower) [10000]
+	    -s Steps (1=process VCF, 2=process BAM, 3=phase, 4=validate and assign phase groups, 5=concatenate) [12345]
+Parallel:   -g Run commands on the grid (y/n) [n]
+            -a Platform (UGER, LSF, GridEngine) [UGER]
+	    -q Queue name [short]
+Outputs:    -o Output folder for tmp files [opt_v-HaplotypeTools-phased-r-opt_r]
+	    -p Phased VCF [opt_v-Phased-m-opt_m-c-opt_c-r-opt_r.vcf]
+
+FASTA_compare_sequences.pl
+Parameters: -f <FASTA>
+Optional:   -o Output (p=pairwise within opt_f, s=summary of pairwise within opt_f, a=additional FASTA: 1:1 order) [p]
+            -g Exclude if gaps percent is greater than this [100]
+	    -a <Additional FASTA in same order> []
+
+Haplotype_list_count.pl <haplotypes list> <full sequence file>
+
+Haplotype_placer.pl 
+Parameters: -p <phased in all; PIA>
+            -a <Haplotype file 1 FASTA>
+            -b <Haplotype file 2 FASTA>
+            -n <Name tab Type tab Location for consensus genomes>
+Optional:   -f Folder for output FASTA and Trees [HaplotypeTools_output]
+            -c Clades/Lineages/Metadata to cluster isolates by. Format (Name tab Clades/Lineages/Metadata) []
+	    -t Location of FastTree [/seq/annotation/bio_tools/FastTree/current/FastTreeMP]
+            -m Mimimum length of haplotype to conside [500]
+            -v Verbose (y/n) [n]
+Windows:    -d Calculate windows (y/n) [n]
+	    -l <Reference FASTA> []
+	    -z Window length [10000]
+Output:     -f Output folder for genomic FASTA files and Trees [HaplotypeTools_output]
+            -s Output summary [HaplotypeTools_summary]
+	    -w Output windows [HaplotypeTools_windows]
+
+VCF_and_FASTA_to_consensus_FASTA.pl 
+Parameters: -v <VCF> 
+            -r <reference FASTA>
+Optional:   -i Include homozygous indels (y/n) [n]
+            -h Include bi-allelic heterozygous positions if ref base not included (y/n) [y]
+            -a For heterozygous positions, use ambiguity code (a) or first position for haploid consensus (f) [f]
+	    -n Character for ambiguous [N]
+	    -s Restrict to only this supercontig [n]
+	    -t Restrict to only this isolate [n]
+Notes: Prints to opt_v-isolate-name-consensus.fasta
+
+VCF_phase_haploid.pl <VCF file 1> > outfile.vcf
+
+VCF_phased_and_PIA_to_FASTA.pl 
+Parameters: -v <VCF file> 
+            -l <PIA file (contig tab start tab stop)> 
+            -r <Reference FASTA>
+Optional:   -p Printing option (o=outfile, s=split to opt_l_1 and _2) [s]
+            -e Exclude printing if haplotypes are identical (y/n) [n]
+	    -m min length [10]
+	    -i Include indels (y/n) [n]
+
+VCF_phased_append_name_to_phase_group.pl <VCF file 1> > outfile.vcf
+
+VCF_phased_calculate_haplotype_lengths.pl <Phased VCF file (with optional additional VCFs separated by comma)>
+
+VCF_phased_compare_to_VCF_phased.pl
+Parameters: -a <VCF file 1>
+            -b <VCF file 2>
+Optional:   -o <outfile ext e.g. 001-1-002-1>
+
+VCF_phased_to_phased_in_all.pl
+Parameters: -v <VCF's (separated by comma)> 
+            -f <reference FASTA>
+Optional:   -c Length cut-off for minimum haplotype to be considered [10]
+            -p Phased in any (1), Phased in all (2) [1]
+
+Windows_haplotypes_to_R_figure.pl
+Parameters: -w <Windows haplotypes dataframe>
+Optional    -s Scaling factor for width (nucleotides per mm) [20000]
+            -h Scaling factor for height (genome per mm) [70]
+            -r Resolution (The nominal resolution in ppi) [100]
+            -c Minimum contig length to include label [1000000]
+            -g Optional size of axis text [2]
+            -l Legend size [2]
+            -x X-min [0]

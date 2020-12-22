@@ -25,20 +25,22 @@ Windows:  -d Calculate windows (y/n) [n]
 	  -l Reference FASTA []
 	  -z Window length [10000]\n
 Output:   -f Output folder for genomic FASTA files and Trees [HaplotypeTools_output]
-          -s Output summary [HaplotypeTools_summary]
-	  -u Output summary2 [HaplotypeTools_summary2]
+          -s Output details [HaplotypeTools_details]
+	  -u Output relatives summary [HaplotypeTools_relatives_summary]
+	  -e Output clade summary, if -c used [HaplotypeTools_clade_summary]
 	  -w Output windows [HaplotypeTools_windows]\n";
-our($opt_a, $opt_b, $opt_c, $opt_d, $opt_f, $opt_i, $opt_l, $opt_m, $opt_n, $opt_p, $opt_s, $opt_t, $opt_u, $opt_v, $opt_w, $opt_z);
-getopt('abcdfilmnpstuvwz');
+our($opt_a, $opt_b, $opt_c, $opt_d, $opt_e, $opt_f, $opt_i, $opt_l, $opt_m, $opt_n, $opt_p, $opt_s, $opt_t, $opt_u, $opt_v, $opt_w, $opt_z);
+getopt('abcdefilmnpstuvwz');
 die $usage unless ($opt_a && $opt_b && $opt_n && $opt_p);
 foreach($opt_a, $opt_b, $opt_n, $opt_p) { die "Cannot open $_ : $!\n" unless (-e $_); }
 if(!defined $opt_d) { $opt_d = 'n'; }
 if(!defined $opt_f) { $opt_f = "HaplotypeTools_output"; }
 if(!defined $opt_i) { $opt_i = "name"; }
 if(!defined $opt_m) { $opt_m = 500; }
-if(!defined $opt_s) { $opt_s = "HaplotypeTools_summary"; }
 if(!defined $opt_t) { $opt_t = "/seq/annotation/bio_tools/FastTree/current/FastTreeMP"; }
-if(!defined $opt_u) { $opt_u = "HaplotypeTools_summary2"; }
+if(!defined $opt_s) { $opt_s = "HaplotypeTools_details"; }
+if(!defined $opt_u) { $opt_u = "HaplotypeTools_relatives_summary"; }
+if(!defined $opt_e) { $opt_e = "HaplotypeTools_clade_summary"; }
 if(!defined $opt_w) { $opt_w = "HaplotypeTools_windows"; }
 if(!defined $opt_v) { $opt_v = 'n'; }
 if(!defined $opt_z) { $opt_z = 10000; }
@@ -194,22 +196,32 @@ foreach my $haplotype(keys %closest_relatives_to_haplotypes) {
 close $ofh1;
 die "Finished without calculating windows (-d $opt_d)\n" if($opt_d eq 'n');
 
-# Print summary 2
-warn "print summary2...\n";
+# Print summary of relatives
+warn "print relatives summary...\n";
 open my $ofh2, '>', $opt_u or die "Cannot open $opt_u : $!\n";
-if(defined $opt_c) { print $ofh2 "Haplotype relative\tClade\tTotal nt\thaplotype relatives (nt)\thaplotype relatives (%)\thaplotype clades (nt)\thaplotype clades (%)\n"; }
-else { print $ofh2 "Haplotype relative\tClade\tTotal nt\thaplotype relatives (nt)\thaplotype relatives (%)\n"; }
+print $ofh2 "Haplotype relative\tClade\tTotal nt\thaplotype relatives (nt)\thaplotype relatives (%)\n";
 foreach my $relative(sort keys %{$summary{'all'}}) {
 	my $clade = $summary{'all'}{$relative};
 	my $hap_relative = $summary{'haplotype_relative'}{$relative};
-	my $hap_clades = $summary{'haplotype_clades'}{$clade};
 	my $total = $summary{'total'};
-	my $hap_relative_pc = sprintf("%.2f", ($hap_relative / $total)) * 100;
-	my $hap_clades_pc = sprintf("%.2f", ($hap_clades / $total)) * 100;
-	if(defined $opt_c) { print $ofh2 "$relative\t$clade\t$total\t$hap_relative\t$hap_relative_pc\t$hap_clades\t$hap_clades_pc\n"; }
-	else { print $ofh2 "$relative\t$clade\t$total\t$hap_relative\t$hap_relative_pc\n"; }
+	my $hap_relative_pc = sprintf("%.2f", (($hap_relative / $total)) * 100);
+	print $ofh2 "$relative\t$clade\t$total\t$hap_relative\t$hap_relative_pc\n";
 }
 close $ofh2;
+
+# Print summary of clades
+if($opt_c) {
+	warn "Print clade summery...\n";
+	open my $ofh3, '>', $opt_e or die "Cannot open $opt_e : $!\n";
+	print $ofh3 "Clade\tTotal nt\thaplotype clades (nt)\thaplotype clades (%)\n";
+	foreach my $clade(sort keys %{$summary{'haplotype_clades'}}) {
+		my $total = $summary{'total'};
+		my $hap_clades = $summary{'haplotype_clades'}{$clade};
+		my $hap_clades_pc = sprintf("%.2f", (($hap_clades / $total)) * 100);
+		print $ofh3 "$clade\t$total\t$hap_clades\t$hap_clades_pc\n";
+	}
+	close $ofh3;
+}
 
 # Windows
 warn "calculating windows...\n";

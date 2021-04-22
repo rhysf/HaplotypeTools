@@ -69,7 +69,8 @@ sub read_VCF_lines {
 		my @sample_info_parts = split /:/, $VCF_info{$sample_info_id};
 
 		# Check format parts matches sample info parts. Error if less format parts than sample info parts
-		die "$VCF_line: scalar(@sample_info_parts) < scalar(@format_parts) (sample info < format parts). Have not coded for this eventuality!\n" if(scalar(@format_parts) < scalar(@sample_info_parts));
+		die "$VCF_line: scalar(@format_parts) < scalar(@sample_info_parts) (format parts < sample info parts). Have not coded for this eventuality!\n" if(scalar(@format_parts) < scalar(@sample_info_parts));
+
 		# Subset sample_info_parts by format_parts
 		if(scalar(@format_parts) > scalar(@sample_info_parts)) {
 			my @reduced_sample_info_parts;
@@ -112,8 +113,8 @@ sub read_VCF_lines {
 
 		# Phasing
 		if(defined $VCF_info{$pid}) {
-			$VCF_info{'phased'} = 1;
-			$VCF_info{'phase_group'} = $VCF_info{$pid}; # Not necessary. It's already saved. but for now, keep it so it works with my phasing
+			$VCF_info{($isolate_number . 'phased')} = 1;
+			$VCF_info{($isolate_number . 'phase_group')} = $VCF_info{$pid}; # Not necessary. It's already saved. but for now, keep it so it works with my phasing
 			#die "new code. I've found PID: $VCF_info{$pid} . All good?\n";
 		}
 	}	
@@ -170,39 +171,44 @@ sub summarise_phases {
 }
 
 sub VCF_split_for_phasing {
-	my ($file, $outfolder, $haplotype_length, $contig_lengths) = @_;
+	my ($HT_data, $contig_lengths) = @_;
+
+	# Input
+	my $file = $$HT_data{'VCF_file'};
+	my $outfolder = $$HT_data{'out_folder'};
+	my $haplotype_length = $$HT_data{'max_phase_length'};
+	foreach($$HT_data{'VCF_file'}, $$HT_data{'out_folder'}, $$HT_data{'max_phase_length'}) { die "VCF_split_for_phasing: HT_data not properly initialised: $!\n" if(!defined $_); }
 
 	# Save VCF
 	warn "VCF_split_for_phasing: $file...\n";
-	my (%VCF_header);
+	my (%VCF_header, %isolate_names);
 	my $ofh;
 	my $contig;
+	my $sample_number = 0;
 	my ($start_window, $stop_window) = (0, $haplotype_length);
 	open my $fh, '<', $file or die "Cannot open VCF: $file: $!\n";
 	VCF1: while (my $line = <$fh>) {
    		chomp $line;
 		my ($VCF_line) = &read_VCF_lines($line);
 
-		# Save the header of VCF. Ignore ambiguous sites
+		# Save the VCF header (except any previous PID or PGT)
 		if($$VCF_line{'header'} eq 'Y') {
-   			if ($line =~ m/^\#/) {
-				if($line =~ m/=/) {
-					my @header_parts = split /=/, $line;
-					# ignore previous PID or PGT
-					next VCF1 if($line =~ m/ID=PID|ID=PGT/);
-
-					$VCF_header{$header_parts[0]} .= "$line\n";
-				} else { 
-					$VCF_header{'rest'} .= "$line\n";
-				}
-			}
+			if($line =~ m/=/) {
+				my @header_parts = split /=/, $line;
+				# ignore previous PID or PGT
+				next VCF1 if($line =~ m/ID=PID|ID=PGT/);
+				$VCF_header{$header_parts[0]} .= "$line\n";
+			} else { $VCF_header{'rest'} .= "$line\n"; }
 			next VCF1;
 		}
 		next VCF1 if($$VCF_line{'next'} eq 1);
-		next VCF1 if($$VCF_line{'base_type0'} =~ m/insertion|deletion/);
-		#next VCF1 if($$VCF_line{'GT0'} eq '.');
-		die "VCF_split_for_phasing: Multisample VCF detected. Currently only compatible with single sample VCFs" if($$VCF_line{'number_of_samples'} > 1);
-		die "VCF_split_for_phasing: Cannot find genotype: $line" if(!defined $$VCF_line{'GT0'});
+
+		# Ignore ambiguous sites
+		my ($GT, $base_type) = ("GT$sample_number", "base_type$sample_number");
+		die "VCF_split_for_phasing: Cannot find genotype: $line" if(!defined $$VCF_line{$GT});
+
+		# Ignore indels (for now)
+		next VCF1 if($$VCF_line{$base_type} =~ m/insertion|deletion/);
 
 		# Init outfile
 		if(!defined $ofh) {
@@ -229,29 +235,21 @@ sub VCF_split_for_phasing {
 			open $ofh, '>', $outfile or die "Cannot open $outfile : $!\n";
 		}
 
-		# Check for previous phasing and remove
-		if($$VCF_line{'format'} =~ m/PID|PGT/) {
-			my $new_format;
-			my $new_sample_info;
-			my @format_parts = split /:/, $$VCF_line{'format'};
-			my @sample_parts = split /:/, $$VCF_line{'sample_info0'};
-			for(my $i=0; $i<scalar(@format_parts); $i++) {
-				my $format_part = $format_parts[$i];
-				my $sample_part = $sample_parts[$i];
-				if(($format_part ne 'PID') && ($format_part ne 'PGT')) {
-					$new_format .= "$format_part:";
-					$new_sample_info .= "$sample_part:";
-				}
-			}
-			$new_format =~ s/:$//;
-			$new_sample_info =~ s/:$//;
-			$$VCF_line{'format'} = $new_format;
-			$$VCF_line{'sample_info0'} = $new_sample_info;
-		}
-		if($$VCF_line{'sample_info0'} =~ m/\|/) { $$VCF_line{'sample_info0'} =~ s/\|/\//g; }
+		# Remove PID|PGT from format if present
+		my $new_format = &remove_phase_from_format($$VCF_line{'format'});
 
-		# Print (leave id blank for read counts
-		my $new_line = join "\t", $$VCF_line{'supercontig'}, $$VCF_line{'position'}, '', $$VCF_line{'reference_VCF_format'}, $$VCF_line{'consensus_VCF_format'}, $$VCF_line{'cons_qual'}, $$VCF_line{'filter'}, $$VCF_line{'info'}, $$VCF_line{'format'}, $$VCF_line{'sample_info0'};
+		# Line for printing (leave id blank for read counts & line missing samples columns)
+		my $new_line = join "\t", $$VCF_line{'supercontig'}, $$VCF_line{'position'}, '', $$VCF_line{'reference_VCF_format'}, $$VCF_line{'consensus_VCF_format'}, $$VCF_line{'cons_qual'}, $$VCF_line{'filter'}, $$VCF_line{'info'}, $new_format;
+
+		# Remove PID|PGT from samples and add sham samples if needed (needs to be for all samples or format parts < sample info parts)
+		for(my $i=0; $i < $$VCF_line{'number_of_samples'}; $i++) {
+			my $sample_info_name = "sample_info$i";
+			my $sample_info = $$VCF_line{$sample_info_name};
+			$sample_info = &remove_phase_and_optional_add_sham_for_sample($sample_info, $$VCF_line{'format'});
+			$new_line .= "\t$sample_info";
+		}
+
+		# Print
 		print $ofh "$new_line\n";
 	}
 	close $fh;
@@ -275,6 +273,70 @@ sub VCF_split_for_phasing {
 	return;
 }
 
+sub parse_VCF {
+	my ($vcf_file, $printing_option, $feature, $summarise_per_contig, $sample_name) = @_;
+	my (%counts, %types_found);
+	my $phase_info;
+
+	# Sample number
+	my $sample_number = vcflines::VCF_and_sample_name_to_sample_number($vcf_file, $sample_name); 
+
+	# Go through the VCF 
+	open my $fh, '<', $vcf_file or die "Cannot open $vcf_file\n";
+	warn "Reading $vcf_file...\n";
+	VCF1: while (my $line = <$fh>) {
+   		chomp $line;
+		my ($VCF_line) = &read_VCF_lines($line);
+
+		# Print 
+		# Header
+		if($$VCF_line{'header'} eq 'Y') {
+			&print_VCF_header($line, $printing_option);
+			next VCF1;
+		}
+		next VCF1 if($$VCF_line{'next'} eq 1);
+		last VCF1 if(($printing_option eq 'header') && ($$VCF_line{'header'} eq 'N'));
+
+		# Print non-header VCF lines
+		my ($base_type_id, $amb_char_id) = ("base_type$sample_number", "amb_char$sample_number");
+		die "base type for sample number $sample_number not found for $line\n" if(!defined $$VCF_line{$base_type_id});
+		my ($base_type, $info, $amb_char) = ($$VCF_line{$base_type_id}, $$VCF_line{'info'}, $$VCF_line{$amb_char_id});
+		&print_VCF_lines($line, $printing_option, $feature, $$VCF_line{$base_type}, "$vcf_file-$$VCF_line{'supercontig'}");
+
+		# Tally variants
+		my $hash_contig_name = "all";
+		if($summarise_per_contig eq 'y') { $hash_contig_name = $$VCF_line{'supercontig'}; }
+		$counts{$vcf_file}{$sample_name}{$hash_contig_name}{$base_type}++; 
+		$types_found{'Variant_types'}{$base_type} = 1;
+
+		# Special types
+		if(($base_type eq 'heterozygous') && ($info =~ m/TRIPROB|TRIALLELIC/)) { $counts{$vcf_file}{$sample_name}{$hash_contig_name}{$info}++; } 
+		if(($base_type eq 'snp') && ($info eq 'phased')) { $counts{$vcf_file}{$sample_name}{$hash_contig_name}{'Phased_SNP'}++; }
+		if(($base_type eq 'heterozygous') && ($info eq 'phased')) { $counts{$vcf_file}{$sample_name}{$hash_contig_name}{'Phased_HET'}++; }
+		if($amb_char) { $types_found{'Type_of_Het'}{$amb_char}{$vcf_file}{$sample_name}{$hash_contig_name}++; }
+		next VCF1 if($base_type eq 'ambiguous');
+		next VCF1 if($$VCF_line{'consensus_VCF_format'} eq '.');
+
+		# Phase metrics
+		if($$VCF_line{'phased'}) {
+			($phase_info) = &get_phase_metrics($phase_info, $$VCF_line{'phase_group'}, $$VCF_line{'position'}, $$VCF_line{'supercontig'});
+
+			if(defined $$phase_info{'save'}) {
+
+				# New phase group = push haplotype into array
+				my $phase_group_to_save = $$phase_info{'save'}{'group'};
+				my $supercontig_of_phase_group_to_save = $$phase_info{'save'}{'supercontig'};
+				my $first_phase_group_position = $$phase_info{'save'}{'first_position'};
+				my $last_phase_group_position = $$phase_info{'save'}{'last_position'};
+				my $length_of_last_phase_group = ($last_phase_group_position - $first_phase_group_position);
+				$types_found{'Phase_group_lengths'}{$vcf_file}{$sample_name}{$hash_contig_name}{$length_of_last_phase_group}++;
+			}
+		}
+	}
+	close $fh;
+	return (\%counts, \%types_found);
+}
+
 sub VCF_to_position_to_line_hash {
 	my ($file) = @_;
 	#warn "Saving VCF file: $file\n";
@@ -282,12 +344,39 @@ sub VCF_to_position_to_line_hash {
 	open my $fh, '<', $file or die "Cannot open VCF: $file: $!\n";
 	VCF1: while (my $line = <$fh>) {
    		chomp $line;
-		my ($VCF_line) = &read_VCF_lines($line);
-		$VCF{$$VCF_line{'position'}} = $line;
+		my @bits = split /\t/, $line;
+
+		# ignore headers
+		next if(!defined $bits[1]); 
+		$VCF{$bits[1]} = $line;
 	}
 	close $fh;
 	return (\%VCF);
 }
+
+sub VCF_line_make {
+	my $VCF_line = $_[0];
+	my $number_of_samples = $$VCF_line{'number_of_samples'};
+	my $line = join "\t", 
+	$$VCF_line{'supercontig'}, 
+	$$VCF_line{'position'}, 
+	$$VCF_line{'id'}, 
+	$$VCF_line{'reference_VCF_format'}, 
+	$$VCF_line{'consensus_VCF_format'}, 
+	$$VCF_line{'cons_qual'}, 
+	$$VCF_line{'filter'}, 
+	$$VCF_line{'info'}, 
+	$$VCF_line{'format'};
+
+	# Samples
+	for(my $i=0; $i < $number_of_samples; $i++) {
+		my $sample_info_name = "sample_info$i";
+		my $sample_info = $$VCF_line{$sample_info_name};
+		$line .= "\t$sample_info";
+	}
+	return $line;
+}
+
 
 sub get_ambiguity_char {
 	my ($base1, $base2) = @_;
@@ -319,6 +408,52 @@ sub get_ambiguity_char {
 	return $ambiguity_char;
 }
 
+sub VCF_and_sample_name_to_sample_number {
+	my ($VCF, $sample_name) = @_;
+	die "VCF_and_sample_name_to_sample_number: VCF doesn't look valid: $VCF : $!\n" if(! -e $VCF);
+	my $sample_number = 0;
+	my $found = 0;
+	my $found_header = 0;
+	open my $fh, '<', $VCF or die "Cannot open VCF: $VCF: $!\n";
+	VCF1: while (my $line = <$fh>) {
+   		chomp $line;
+		my ($VCF_line) = &read_VCF_lines($line);
+
+		# Save the isolate_names
+		if(defined $$VCF_line{'isolate_names'}) {
+			$found_header = 1;
+			foreach my $vcf_isolate_number(keys %{$$VCF_line{'isolate_names'}}) {
+				my $vcf_sample_name = $$VCF_line{'isolate_names'}{$vcf_isolate_number};
+				if($vcf_sample_name eq $sample_name) {
+					$sample_number = $vcf_isolate_number; 
+					$found =1;
+				}
+			}
+			last VCF1;
+		}
+	}
+	close $fh;
+	if($found_header eq 0) { warn "Did not find VCF header specifying sample names\n"; }
+	if($found eq 0) { warn "Did not find sample $sample_name in VCF header, so using sample 0 by default (if this is a multi VCF and something other than the first sample is wanted - it needs to be re-run\n"; }
+	if($found eq 1) { warn "VCF_and_sample_name_to_sample_number: found sample $sample_name on sample column: $sample_number\n"; }
+	return ($sample_number, $found);
+}
+
+sub VCF_to_sample_names {
+	my $VCF = $_[0];
+	my %sample_names;
+	open my $fh, '<', $VCF or die "Cannot open VCF: $VCF: $!\n";
+	VCF1: while (my $line = <$fh>) {
+   		chomp $line;
+		my ($VCF_line) = &read_VCF_lines($line);
+
+		# Save the isolate_names
+		if(defined $$VCF_line{'isolate_names'}) {
+			return $$VCF_line{'isolate_names'};
+		}
+	}
+}
+
 ############### Local subroutines
 sub VCF_header_to_struct {
 	my ($VCF_line, $VCF_struct) = @_;
@@ -331,6 +466,78 @@ sub VCF_header_to_struct {
 		}
 	}
 	return $VCF_struct;
+}
+
+sub print_VCF_header {
+	my ($line, $printing_option) = @_; 
+	print "$line\n" if($printing_option eq 'vcf');
+	print "$line\n" if($printing_option eq 'header');
+	return 1;
+}
+
+sub print_VCF_lines {
+	my ($line, $printing_option, $feature, $base_type, $outfile) = @_;
+	if(($feature eq 'all') || ($feature eq $base_type)) { 
+		print "$line\n" if($printing_option eq 'vcf');
+		print "$line\n" if($printing_option eq 'no_header');
+		if($printing_option eq 'split_by_contig') { 
+			open OUT, ">>$outfile" or die "Cannot open $outfile: $!\n";
+			print OUT "$line\n";
+			close OUT;
+		}
+	}
+	return 1;
+}
+
+sub remove_phase_and_optional_add_sham_for_sample {
+	my ($sample, $format) = @_;
+
+	if($sample =~ m/\|/) { $sample =~ s/\|/\//g; }
+	my @sample_parts = split /:/, $sample;
+	my @format_parts = split /:/, $format;
+
+	# Check for empty samples or ambigious samples and replace with sham (explicitly ambigious!)
+	my $new_sample_info = $sample;
+	if(scalar(@sample_parts) < scalar(@format_parts)) { $new_sample_info = &make_sham_sample_from_format($format); }
+
+	# Check for previous phasing from old format and remove from samples
+	if($format =~ m/PID|PGT/) {
+		my @sample_parts = split /:/, $new_sample_info;
+		$new_sample_info = '';
+		for(my $i=0; $i<scalar(@format_parts); $i++) {
+			my $format_part = $format_parts[$i];
+			next if($format_part =~ m/PID|PGT/);
+			die "No sample part found from $sample $format . Check VCF\n" if(!defined $sample_parts[$i]);
+			my $sample_part = $sample_parts[$i];
+			$new_sample_info .= "$sample_part:";
+		}
+		$new_sample_info =~ s/:$//;
+	}
+	return $new_sample_info;
+}
+
+sub make_sham_sample_from_format {
+	my $format = $_[0];
+	my @format_parts = split /:/, $format;
+	my $sham_sample = ".:" x scalar(@format_parts);
+	$sham_sample =~ s/:$//;
+	return $sham_sample;
+}
+
+sub remove_phase_from_format {
+	my $format = $_[0];
+	my $unphased_format;
+
+	if($format =~ m/PID|PGT/) {
+		my @format_parts = split /:/, $format;
+		for(my $i=0; $i<scalar(@format_parts); $i++) {
+			my $format_part = $format_parts[$i];
+			next if($format_part =~ m/PID|PGT/);
+			$unphased_format .= "$format_part:";
+		}
+		$unphased_format =~ s/:$//;
+	} else { $unphased_format = $format; }
+	return $unphased_format;
 }
 
 sub VCF_struct_determine_bases_and_base_type {
@@ -355,8 +562,8 @@ sub VCF_struct_determine_bases_and_base_type {
 	# QC that GT matches a base for homozygous variants
 	my @bases = split /,/, $$VCF_struct{'consensus_VCF_format'};
 	if(($$VCF_struct{$GT_id} !~ m/(\d)([\/\|])(\d)/) && (!defined $bases[($$VCF_struct{$GT_id} - 1)])) {
-		warn "Nothing found for this VCF entry:\n";
-		warn Dumper($VCF_struct);
+		#warn "Nothing found for this VCF entry:\n";
+		#warn Dumper($VCF_struct);
 		$base1 = 'N';
 		$base_type = 'ambiguous';
 		return ($base1, $base2, $base_type);
@@ -381,21 +588,37 @@ sub VCF_struct_determine_bases_and_base_type {
 				my @bases_reference = split //, $$VCF_struct{'reference_VCF_format'};
 				my @bases_consensus = split //, $consensus;
 				my $snp_count = 0;
+				my ($ref_base_saved, $cons_base_saved);
 				for(my $i=0; $i<scalar(@bases_reference); $i++) {
 					my $ref_base = $bases_reference[$i];
 					my $cons_base = $bases_consensus[$i];
-					if($ref_base ne $cons_base) { $snp_count++; }
+					if($ref_base ne $cons_base) { 
+						$ref_base_saved = $ref_base;
+						$cons_base_saved = $cons_base;
+						$snp_count++; 
+					}
 				}
-				if($snp_count ne 0) {
+				if($snp_count eq 0) {
+					$base1 = $$VCF_struct{'reference_VCF_format'};;
+					$base_type = 'reference';
+					return ($base1, $base2, $base_type);
+				}
+				elsif($snp_count eq 1) {
+					$base1 = $ref_base_saved;
+					$base2 = $cons_base_saved;
+					$base_type = 'snp';
+					return ($base1, $base2, $base_type);
+				}
+				if($snp_count > 1) {
 					$base1 = $consensus;
 					$base_type = ('snp_multi' . $snp_count);
 					return ($base1, $base2, $base_type);
 				}
 			}
 	
-			# Ambiguous
-			warn "Nothing found for this apparant homozygous snp:\n";
-			warn Dumper($VCF_struct);
+			#  Ambiguous
+			#warn "Nothing found for this apparant homozygous snp:\n";
+			#warn Dumper($VCF_struct);
 			$base1 = 'N';
 			$base_type = 'ambiguous';
 			return ($base1, $base2, $base_type);
@@ -424,8 +647,8 @@ sub VCF_struct_determine_bases_and_base_type {
 			}
 			
 			# Ambiguous
-			warn "Nothing found for this apparent homozygous indel:\n";
-			warn Dumper($VCF_struct);
+			#warn "Nothing found for this apparent homozygous indel:\n";
+			#warn Dumper($VCF_struct);
 			$base1 = 'N';
 			$base_type = 'ambiguous';
 			return ($base1, $base2, $base_type);

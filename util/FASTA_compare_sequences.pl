@@ -11,7 +11,7 @@ use read_FASTA;
 my $usage = "Usage: $0 -f <FASTA> > output_summary\n
 Optional: -o\tOutput (p=pairwise within opt_f, s=summary of pairwise within opt_f, a=additional FASTA: 1:1 order) [p]
           -g\tExclude if gaps percent is greater than this [100]
-	  -a\tAdditional FASTA in same order []\n";
+          -a\tAdditional FASTA in same order []\n";
 our($opt_f, $opt_o, $opt_g, $opt_a);
 getopt('foga');
 die $usage if(!defined $opt_f);
@@ -25,21 +25,26 @@ my $fasta1 = fastafile::fasta_to_struct($opt_f);
 # Compare to additional FASTA (Coded to need same ID)
 if($opt_o eq 'a') {
 	my $fasta2 = fastafile::fasta_to_struct($opt_a);
-	print "ids\tLength\tSame\tDifferent\tGaps\n";
+	print "ids\tLength\tSame\tDifferent\tGaps\tpc_dif\n";
 	foreach my $id(keys %{$$fasta1{'seq'}}) {
 		die "$id in $opt_f not found in $opt_o\n" if(!defined $$fasta2{'seq'}{$id});
 		my $sequence1 = $$fasta1{'seq'}{$id};
 		my $sequence2 = $$fasta2{'seq'}{$id};
 		my ($length, $same, $gaps, $different, $average_gaps_pc) = &compare_sequences($sequence1, $sequence2, $id, $id);
 		next SEQ2 if($average_gaps_pc > $opt_g);
+
+		# %
+		my $pc_dif = 0;
+		if($different ne 0) { $pc_dif = ($different / $length) * 100; }
+		
 		# Default to pairwse
-		print "$id\t$length\t$same\t$different\t$gaps\n";
+		print "$id\t$length\t$same\t$different\t$gaps\t$pc_dif\n";
 	}
 	die "End of 1:1 comparisons\n";
 }
 
 # Headers for pairwise
-if($opt_o eq 'p') { print "id1\tid2\tLength\tSame\tDifferent\tGaps\n"; }
+if($opt_o eq 'p') { print "id1\tid2\tLength\tSame\tDifferent\tGaps\tpc_dif\n"; }
 my ($total_length, $total_same, $max, $min) = (0,0,0,100);
 my ($min_id, $max_id) = ('','');
 
@@ -59,8 +64,12 @@ SEQ1: foreach my $id1(keys %{$$fasta1{'seq'}}) {
 		my ($length, $same, $gaps, $different, $average_gaps_pc) = &compare_sequences($sequence1, $sequence2, $id1, $id2);
 		next SEQ2 if($average_gaps_pc > $opt_g);
 
+		# %
+		my $pc_dif = 0;
+		if($different ne 0) { $pc_dif = ($different / $length) * 100; }
+
 		# pairwise summary
-		if($opt_o eq 'p') { print "$id1\t$id2\t$length\t$same\t$different\t$gaps\n"; }
+		if($opt_o eq 'p') { print "$id1\t$id2\t$length\t$same\t$different\t$gaps\t$pc_dif\n"; }
 		# end of file summary
 		if($opt_o eq 's') {
 			$total_length += $length;

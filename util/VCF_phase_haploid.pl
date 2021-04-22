@@ -25,7 +25,7 @@ VCF: while (my $line = <$fh>) {
 	}
 
 	# Make everything a phased group called supercontig name
-	if($$VCF_line{'phased'}) { die "line is already phased: $line\n"; }
+	if($$VCF_line{'0phased'}) { die "line is already phased: $line\n"; }
 	if($$VCF_line{'base_type0'} eq 'heterozygous') { die "Found heterozygous position. Script intended only for haploid VCFs: $line\n"; }
 
 	$$VCF_line{'info'} = "PHASE=$$VCF_line{'supercontig'}";

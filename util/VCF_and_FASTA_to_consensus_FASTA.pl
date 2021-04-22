@@ -11,15 +11,16 @@ use read_FASTA;
 
 # Opening commands 
 my $usage = "Usage: perl $0 -v <VCF> -r <reference FASTA>\n
-Optional: -i\tInclude homozygous indels (y/n) [n]
+Optional: -u\tRestrict to sample name []
+          -i\tInclude homozygous indels (y/n) [n]
           -h\tInclude bi-allelic heterozygous positions if ref base not included (y/n) [y]
           -a\tFor heterozygous positions, use ambiguity code (a) or first position for haploid consensus (f) [f]
 	  -n\tCharacter for ambiguous [N]
 	  -s\tRestrict to only this supercontig [n]
 	  -t\tRestrict to only this isolate [n]
 Notes: Prints to opt_v-isolate-name-consensus.fasta\n";
-our($opt_v, $opt_r, $opt_i, $opt_h, $opt_a, $opt_n, $opt_s, $opt_t);
-getopt('vrihanst');
+our($opt_a, $opt_h, $opt_i, $opt_n, $opt_r, $opt_s, $opt_t, $opt_u, $opt_v);
+getopt('ahinrstuv');
 die $usage unless (($opt_v) && ($opt_r));
 if(!defined $opt_a) { $opt_a = 'f'; }
 if(!defined $opt_i) { $opt_i = 'n'; }
@@ -32,7 +33,7 @@ die "opt_i needs to be y or n: $opt_i\n" if ($opt_i !~ m/[yn]/);
 die "opt_h needs to be y or n: $opt_h\n" if ($opt_h !~ m/[yn]/);
 
 # Go through VCF saving only polymorphic sites ($variants{$isolate_name}{$sc}{$pos}{$ref} = $cons;)
-my $variants = &save_polymorphic_sites_from_VCF($opt_v, $opt_s); 
+my $variants = &save_polymorphic_sites_from_VCF($opt_v, $opt_s, $opt_u); 
 
 # Save consensus reference FASTA
 my ($sequences, $descriptions, $order) = fastafile::fasta_id_to_seq_hash($opt_r);
@@ -73,7 +74,7 @@ foreach my $isolate_name(sort keys %{$variants}) {
 }
 
 sub save_polymorphic_sites_from_VCF {
-	my ($input, $restrict_to_supercontig_or_n) = @_;
+	my ($input, $restrict_to_supercontig_or_n, $restrict_to_sample) = @_;
 
 	my (%variants, %isolate_names);
 	my ($snps, $hets, $ambiguous) = (0,0,0);
@@ -83,14 +84,20 @@ sub save_polymorphic_sites_from_VCF {
    		chomp $line;
 		my ($VCF_line) = vcflines::read_VCF_lines($line);
 		if($$VCF_line{'isolate_names'}) { %isolate_names = %{$$VCF_line{'isolate_names'}}; }
+
+		# Restrict to genome or contig
 		next VCF if($$VCF_line{'next'} eq 1);
 		my ($sc, $pos, $ref, $cons) = ($$VCF_line{'supercontig'}, $$VCF_line{'position'}, $$VCF_line{'reference_VCF_format'}, $$VCF_line{'consensus_VCF_format'});
 		if($restrict_to_supercontig_or_n ne 'n') { next unless($restrict_to_supercontig_or_n eq $sc); }
+		if(defined $restrict_to_sample) {
+			die "$restrict_to_sample not found in $input\n" if(!defined $isolate_names{$restrict_to_sample});
+		}
 
 		# Multi VCF stuff
 		my $number_of_isolates = scalar(keys(%isolate_names));
 		ISOLATES: for(my $i=0; $i<$number_of_isolates; $i++) {
 			my $isolate_name = $isolate_names{$i};
+			if(defined $restrict_to_sample) { next ISOLATES unless($isolate_name eq $restrict_to_sample); }
 			my $base1 = $$VCF_line{($i . 'base1')};
 			my $base_type = $$VCF_line{('base_type' . $i)};
 			my $amb_char = $$VCF_line{('amb_char' . $i)};

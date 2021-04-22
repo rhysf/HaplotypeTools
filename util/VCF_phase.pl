@@ -8,15 +8,17 @@ use VCF_phase;
 ### rfarrer@broadinstitute.org
 
 # Opening commands 
-my $usage = "Usage: perl $0 -a <alignment file from VCF_and_BAM_to_phased_VCF.pl> -v <VCF subset from VCF_and_BAM_to_phased_VCF.pl> -c <contig>
-Outputs: -o\tOutput [opt_v-phased]\n";
-our($opt_a, $opt_c, $opt_g, $opt_o, $opt_p, $opt_q, $opt_v);
-getopt('acov');
-die $usage unless ($opt_a && $opt_v && $opt_c);
-if(!defined $opt_o) { $opt_o = "$opt_v-phased"; }
+my $usage = "Usage: perl $0 -v <VCF from step 1 of HaplotypeTools> -a <alignment file from step 2 of HaplotypeTools>\n
+Optional: -s\tSample number [0]\n
+Outputs:  -o\tOutput [opt_v-phased-opt_s]\n";
+our($opt_a, $opt_o, $opt_s, $opt_v);
+getopt('aosv');
+die $usage unless ($opt_a && $opt_v);
+if(!defined $opt_s) { $opt_s = 0; }
+if(!defined $opt_o) { $opt_o = "$opt_v-phased-$opt_s"; }
 
 # Phase
-my $phased_VCF_hash = vcfphase::phase_reads($opt_a, $opt_v, $opt_c);
+my $phased_VCF_hash = vcfphase::phase_reads($opt_a, $opt_v, $opt_s);
 
 # Print
 open my $ofh, '>', $opt_o or die "Cannot open $opt_o : $!\n";

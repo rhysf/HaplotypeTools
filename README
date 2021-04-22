@@ -22,8 +22,8 @@ Getting started / example pipeline for phasing individual sample:
 
 git clone git@github.com:rhysf/HaplotypeTools.git
 cd HaplotypeTools/
-perl HaplotypeTools.pl -v unphased_sample1.vcf -b sample1.bam -f reference.fasta
-perl util/VCF_phased_to_phased_in_all.pl -v phased_sample1.vcf -f reference.fasta > phased_sample1.PIA
+perl HaplotypeTools.pl -v <unphased.vcf> -b <sorted BAMs (separated by comma)> -u <VCF sample names in order of input BAM files (separated by comma)> -f reference.fasta
+perl util/VCF_phased_to_PIA.pl -v phased_sample1.vcf -f reference.fasta > phased_sample1.PIA
 perl util/VCF_phased_and_PIA_to_FASTA.pl -v phased_sample1.vcf -l phased_sample1.PIA -r reference.fasta
 perl util/FASTA_compare_sequences.pl -f phased_sample1.PIA_1.fasta -a phased_sample1.PIA_2.fasta -o a > phased_sample1.PIA.summary
 
@@ -45,7 +45,7 @@ Sample1	clade1
 Sample2	clade1
 Sample3	clade2
 
-perl util/VCF_phased_to_phased_in_all.pl -v phased_sample1.vcf,phased_sample2.vcf,phased_sample3.vcf -f reference.fasta > phased_samples1-3.PIA.summary
+perl util/VCF_phased_to_PIA.pl -v phased_sample1.vcf,phased_sample2.vcf,phased_sample3.vcf -f reference.fasta -s 1 > phased_samples1-3.PIA.summary
 perl util/VCF_phased_and_PIA_to_FASTA.pl -v phased_sample1.vcf -l phased_samples1-3.PIA -r reference.fasta 
 perl util/Haplotype_placer.pl -p phased_samples1-3.PIA.summary -a phased_sample1.PIA_1.fasta -b phased_sample1.PIA_2.fasta -n Name_Type_Location.tab 
 
@@ -63,7 +63,7 @@ perl util/VCF_phased_compare_to_VCF_phased.pl -a phased_sample1.vcf -b phased_sa
 
 To locate genomic regions phased in multiple samples:
 
-perl util/VCF_phased_to_phased_in_all.pl -v phased_sample1.vcf,phased_sample2.vcf,phased_sample3.vcf -f reference.fasta -p 2 > phased_samples1-3.PIA-p-2.summary
+perl util/VCF_phased_to_PIA.pl -v phased_sample1.vcf,phased_sample2.vcf,phased_sample3.vcf -f reference.fasta -p 2 > phased_samples1-3.PIA-p-2.summary
 
 Description of example pipelines:
 --------------------------------
@@ -75,15 +75,13 @@ according to a cutoff (-c) in HaplotypeTools.pl. HaplotypeTools.pl can take a
 lond time when not submitted in parallel to a cluster, so where available it should
 be run in parallel (via settings -g, -a and -q). Once phased, the VCF can be compared 
 to consensus genomes belonging to relatives in order to identify possible parental
-strains, or can be compared to other phased VCF's to look for crossovers.
+strains, or can be compared to other phased VCF's (or if multi VCF, samples within)
+to look for crossovers.
 
-Genomic regions that are phased in >=1 VCF are called 'phased in any/all; PIA'.
-PIA consists of a list of regions that contains haplotypes in >=1 VCF. If only one VCF
-is used as an input, then the PIA is a summary of all haplotypes. If multiple VCFs are
-used as input, then VCFs with unphased regions may still be compared if they are homozygous. 
-By default, we -p 1, which sets the script to find haplotypes phased in any. If -p 2
-then it will restrict to only regions phased in every isolate, which is applicable for
-certain comparisons. PIA in either setting serve as an intermediate file needed to 
+Genomic regions that are phased in >=1 VCF (or multiple samples within a VCF) 
+are called 'phased in any/all; PIA'. Phased in any (-p 1) is the default, while 
+phased in all (-p 2) will output only regions phased in every sample.
+PIA in either setting serve as an intermediate file needed to 
 extract haplotypes in FASTA format, as well as HaplotypePlacer:
 
 Haplotype_placer.pl will compare haplotypes from a phased VCF and consensus
@@ -103,17 +101,19 @@ Files are highlighted in <>.
 
 HaplotypeTools.pl 
 Parameters: -v <VCF> 
-            -b <BAM (sorted)> 
+            -b <BAM (sorted) separated by comma if phasing multiple samples in a multi VCF> 
             -f <reference fasta>
+	    -u VCF sample names in order of input BAM files (separated by comma if phasing multiple samples)
 Optional:   -c Cut-off percent reads supporting phase group [90]
             -m Minimum read depth overlapping two heterozygous SNPs [4]
 	    -r Max phase length (longer=slower) [10000]
-	    -s Steps (1=process VCF, 2=process BAM, 3=phase, 4=validate and assign phase groups, 5=concatenate) [12345]
+	    -s Steps (1=process VCF, 2=process BAM, 3=assign read info to VCF, 4=validate and assign phase groups, 5=concatenate) [12345]
 Parallel:   -g Run commands on the grid (y/n) [n]
             -a Platform (UGER, LSF, GridEngine) [UGER]
 	    -q Queue name [short]
 Outputs:    -o Output folder for tmp files [opt_v-HaplotypeTools-phased-r-opt_r]
 	    -p Phased VCF [opt_v-Phased-m-opt_m-c-opt_c-r-opt_r.vcf]
+            -y Phased summary [opt_v-Phased-m-opt_m-c-opt_c-r-opt_r-summary.tab]
 
 FASTA_compare_sequences.pl
 Parameters: -f <FASTA>
@@ -124,18 +124,18 @@ Optional:   -o Output (p=pairwise within opt_f, s=summary of pairwise within opt
 Haplotype_list_count.pl <haplotypes list> <full sequence file>
 
 Haplotype_placer.pl 
-Parameters: -p <phased in all; PIA>
+Parameters: -p <phased in any/all; PIA>
             -a <Haplotype file 1 FASTA>
             -b <Haplotype file 2 FASTA>
             -n <Name tab Type tab Location for consensus genomes>
 Optional:   -f Folder for output FASTA and Trees [HaplotypeTools_output]
             -c Clades/Lineages/Metadata to cluster isolates by. Format (Name tab Clades/Lineages/Metadata) []
-	    -t Location of FastTree [/seq/annotation/bio_tools/FastTree/current/FastTreeMP]
-            -m Mimimum length of haplotype to conside [500]
+            -t Location of FastTree [/seq/annotation/bio_tools/FastTree/current/FastTreeMP]
+            -m Mimimum length of haplotypes [100]
             -v Verbose (y/n) [n]
 Windows:    -d Calculate windows (y/n) [n]
-	    -l <Reference FASTA> []
-	    -z Window length [10000]
+            -l <Reference FASTA> []
+            -z Window length [10000]
 Output:     -f Output folder for genomic FASTA files and Trees [HaplotypeTools_output]
             -s Output summary [HaplotypeTools_summary]
 	    -w Output windows [HaplotypeTools_windows]
@@ -151,13 +151,21 @@ Optional:   -i Include homozygous indels (y/n) [n]
 	    -t Restrict to only this isolate [n]
 Notes: Prints to opt_v-isolate-name-consensus.fasta
 
+VCF_phase.pl
+Parameters: -v <VCF from step 1 of HaplotypeTools>
+            -a <alignment file from step 2 of HaplotypeTools>
+
+Optional:   -s Sample number
+Output:     -o Output [opt_v-phased-opt_s]
+
 VCF_phase_haploid.pl <VCF file 1> > outfile.vcf
 
 VCF_phased_and_PIA_to_FASTA.pl 
 Parameters: -v <VCF file> 
             -l <PIA file (contig tab start tab stop)> 
             -r <Reference FASTA>
-Optional:   -p Printing option (o=outfile, s=split to opt_l_1 and _2) [s]
+Optional:   -u Sample name in VCF to pull haplotypes from [WGS]
+            -p Printing option (o=outfile, s=split to opt_l_1 and _2) [s]
             -e Exclude printing if haplotypes are identical (y/n) [n]
 	    -m min length [10]
 	    -i Include indels (y/n) [n]
@@ -165,17 +173,32 @@ Optional:   -p Printing option (o=outfile, s=split to opt_l_1 and _2) [s]
 VCF_phased_append_name_to_phase_group.pl <VCF file 1> > outfile.vcf
 
 VCF_phased_calculate_haplotype_lengths.pl <Phased VCF file (with optional additional VCFs separated by comma)>
+Optional:  -s Sample name (with optional additional sample names separated by comma)
+           -e Output results for every sample (y/n) [n]
 
 VCF_phased_compare_to_VCF_phased.pl
 Parameters: -a <VCF file 1>
             -b <VCF file 2>
-Optional:   -o <outfile ext e.g. 001-1-002-1>
+	    or
+	    -a <VCF>
+	    -c Sample ID 1
+	    -d Sample ID 2
+Optional:   -o Outfile extension [HaplotypeTools_VCF1_vs_VCF2]
 
-VCF_phased_to_phased_in_all.pl
+VCF_phased_to_PIA.pl
 Parameters: -v <VCF's (separated by comma)> 
             -f <reference FASTA>
 Optional:   -c Length cut-off for minimum haplotype to be considered [10]
             -p Phased in any (1), Phased in all (2) [1]
+            -s Sample names to restrict analysis too (separated by comma)
+
+VCF_phased_validate_and_assign_phase_groups.pl
+Parameters: -v <VCF-phased-Sample_Number (from VCF_phase.pl)>
+Optional:   -c Cut-off percent reads supporting phase group [90]
+            -m Minimum read depth overlapping two heterozygous SNPs [4]
+            -z Verbose for error checking (y/n) [n]
+Output:     -o Output VCF [opt_v-and-assigned.tab]
+            -l Tallies for percent of reads agreeing with phases [opt_v-Tally-agree-disagree-opt_m-MD-opt_c-pc_cutoff.tab]
 
 Windows_haplotypes_to_R_figure.pl
 Parameters: -w <Windows haplotypes dataframe>

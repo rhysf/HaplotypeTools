@@ -25,7 +25,7 @@ VCF: while (my $line = <$fh>) {
 	}
 
 	# Prepend supercontig name to phase group number
-	if($$VCF_line{'phased'}) {
+	if($$VCF_line{'0phased'}) {
 		die "Phase group not found (PID0): $line\n" if(!defined $$VCF_line{'PID0'});
 		my $phase_group = $$VCF_line{'PID0'};
 		$$VCF_line{'PID0'} = "$$VCF_line{'supercontig'}\_$phase_group";

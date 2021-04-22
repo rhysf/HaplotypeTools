@@ -15,9 +15,9 @@ Optional: -s Scaling factor for width (nucleotides per mm) [20000]
           -h Scaling factor for height (genome per mm) [70]
           -r Resolution (The nominal resolution in ppi) [100]
           -c Minimum contig length to include label [1000000]
-	  -g Optional size of axis text [2]
-	  -l Legend size [2]
-	  -x X-min [0]\n
+          -g Optional size of axis text [2]
+          -l Legend size [2]
+          -x X-min [0]\n
 Outputs:  -o Output R plot [windows_plot_for_Haplotypes.R]\n";
 our($opt_c, $opt_g, $opt_h, $opt_l, $opt_o, $opt_r, $opt_s, $opt_w, $opt_x);
 getopt('cghlorswxz');

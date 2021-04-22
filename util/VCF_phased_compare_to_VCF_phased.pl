@@ -8,11 +8,11 @@ use VCF_phase;
 ### rfarrer@broadinstitute.org
 
 # Opening commands 
-my $usage = "Usage: perl $0 -a <VCF file 1> -b <VCF file 2>\n
+my $usage = "Usage: perl $0 -a <VCF file 1> -b <VCF file 2> || -a <VCF file 1> -c <Sample ID 1> -d <Sample ID 2>\n
 Optional: -o Outfile extension [HaplotypeTools_VCF1_vs_VCF2]>\n";
-our($opt_a, $opt_b, $opt_o);
-getopt('abo');
-die $usage unless($opt_a && $opt_b);
+our($opt_a, $opt_b, $opt_c, $opt_d, $opt_o);
+getopt('abcdo');
+die $usage unless(($opt_a && $opt_b) || ($opt_a && $opt_c && $opt_d));
 if(!defined $opt_o) { $opt_o = 'HaplotypeTools_VCF1_vs_VCF2'; }
 
 # Outfiles
@@ -27,8 +27,20 @@ print $ofh2 "Overlapping Phase Group\tContig\tPosition\tVCF1\tVCF2\tIdentity\n";
 print $ofh3 "Overlapping Phase Group\tContig\tPosition\tVCF1\tVCF2\tIdentity\n";
 
 # Save phase groups from VCFs
-my ($phased_hets1) = vcfphase::VCF_phased_to_phase_group_contig_pos_to_bases($opt_a, $ofh1);
-my ($phased_hets2) = vcfphase::VCF_phased_to_phase_group_contig_pos_to_bases($opt_b, $ofh1);
+my ($phased_hets1, $phased_hets2);
+# Two separate VCFs
+if($opt_a && $opt_b) {
+	$phased_hets1 = vcfphase::VCF_phased_to_phase_group_contig_pos_to_bases($opt_a, $ofh1, 0);
+	$phased_hets2 = vcfphase::VCF_phased_to_phase_group_contig_pos_to_bases($opt_b, $ofh1, 0); 
+}
+# One VCF
+else {
+	# Find sample numbers
+	my ($sample_number1, $sample_found1) = vcflines::VCF_and_sample_name_to_sample_number($opt_a, $opt_c);
+	my ($sample_number2, $sample_found2) = vcflines::VCF_and_sample_name_to_sample_number($opt_a, $opt_d);
+	$phased_hets1 = vcfphase::VCF_phased_to_phase_group_contig_pos_to_bases($opt_a, $ofh1, $sample_number1);
+	$phased_hets2 = vcfphase::VCF_phased_to_phase_group_contig_pos_to_bases($opt_a, $ofh1, $sample_number2); 
+}
 
 # Compare phase groups
 my $found_in_both = 0;

@@ -12,26 +12,28 @@ use Data::Dumper;
 
 # Opening commands 
 my $usage = "Usage: perl $0 -v <VCF file> -l <PIA file (contig tab start tab stop)> -r <Reference FASTA>\n
-Optional: -p\tPrinting option (o=outfile, s=split to opt_l_1 and _2) [s]
+Optional: -u\tIf Multi VCF, sample name in VCF to pull haplotypes from [WGS]
+          -p\tPrinting option (o=outfile, s=split to opt_l_1 and _2) [s]
           -e\tExclude printing if haplotypes are identical (y/n) [n]
 	  -m\tmin length [10]
 	  -i\tInclude indels (y/n) [n]\n";
-our($opt_v, $opt_l, $opt_r, $opt_p, $opt_e, $opt_m, $opt_i);
-getopt('vlrpemi');
+our($opt_v, $opt_l, $opt_r, $opt_u, $opt_p, $opt_e, $opt_m, $opt_i);
+getopt('vlrupemi');
 die $usage unless (($opt_v) && ($opt_l) && (($opt_r)));
 if(!defined $opt_p) { $opt_p = 's'; }
 if(!defined $opt_e) { $opt_e = 'n'; }
+if(!defined $opt_u) { $opt_u = 'WGS'; }
 if(!defined $opt_m) { $opt_m = 10; }
 if(!defined $opt_i) { $opt_i = 'n'; }
 
 # Save reference FASTA
-my ($sequences, $descriptions, $order) = fastafile::fasta_id_to_seq_hash($opt_r);
+my $sequences = fastafile::fasta_to_struct($opt_r);
 
 # Save haplotypes
 my $haplotypes = tabfile::save_columns_to_column_hash($opt_l, 0, 1, 2);
 
 # Save phased variants from VCF
-my $polymorphisms = vcfphase::VCF_phased_to_contig_pos_haps_to_variant($opt_v, $opt_i);
+my $polymorphisms = vcfphase::VCF_phased_to_contig_pos_haps_to_variant($opt_v, $opt_i, $opt_u);
 
 # Outfiles
 my ($ofh1, $ofh2);
@@ -43,6 +45,7 @@ if($opt_p ne 'o') {
 }
 
 # Go through haplotypes
+warn "Go through haplotypes...\n";
 my ($worked, $haps_seen, $haps_same) = (0, 0, 0);
 foreach my $supercontig(sort keys %{$haplotypes}) {
 	#warn "Haplotypes -> supercontig = $supercontig\n";
@@ -52,7 +55,7 @@ foreach my $supercontig(sort keys %{$haplotypes}) {
 
 		# Save initial haplotype sequence from FASTA
 		#warn "\nRefs = $ref_seq ($group)\n";
-   		my $ref_seq = substr $$sequences{$supercontig}, ($start - 1), (($stop - $start) + 1);
+   		my $ref_seq = substr $$sequences{'seq'}{$supercontig}, ($start - 1), (($stop - $start) + 1);
    		my ($hap1, $hap2) = ($ref_seq, $ref_seq);
    		$haps_seen++;
 
@@ -63,7 +66,7 @@ foreach my $supercontig(sort keys %{$haplotypes}) {
 			#warn "FOUND.\n";
 
 			# Check the reference bases from both hapltoypes and reference FASTA are concordant
-			my $test_ref = substr $$sequences{$supercontig}, ($variant_pos - 1), 1;
+			my $test_ref = substr $$sequences{'seq'}{$supercontig}, ($variant_pos - 1), 1;
    			my $test_base_in_test_seq = substr $ref_seq, ($variant_pos - $start), 1;
    			if($test_ref ne $test_base_in_test_seq) { 
    				warn "$test_ref != $test_base_in_test_seq at pos $variant_pos of \n"; 

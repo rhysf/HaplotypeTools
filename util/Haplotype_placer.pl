@@ -17,18 +17,18 @@ use Data::Dumper;
 my $usage = "Usage: perl $0 -p <phased in any/all; PIA> -a <Haplotype file 1 FASTA> -b <Haplotype file 2 FASTA> -n <Name tab Type tab Location for consensus genomes>\n
 Optional: -f Folder for output FASTA and Trees [HaplotypeTools_output]
           -c Clades/Lineages/Metadata to cluster isolates by. Format (Name tab Clades/Lineages/Metadata) []
-	  -t Location of FastTree [/seq/annotation/bio_tools/FastTree/current/FastTreeMP]
-	  -m Mimimum length of haplotype to conside [500]
-	  -i Isolate name for windows [name]
-	  -v Verbose (y/n) [n]\n
+          -t Location of FastTree [/seq/annotation/bio_tools/FastTree/current/FastTreeMP]
+          -m Mimimum length of haplotypes [100]
+          -i Isolate name for windows [name]
+          -v Verbose (y/n) [n]\n
 Windows:  -d Calculate windows (y/n) [n]
-	  -l Reference FASTA []
-	  -z Window length [10000]\n
+          -l Reference FASTA []
+          -z Window length [10000]\n
 Output:   -f Output folder for genomic FASTA files and Trees [HaplotypeTools_output]
           -s Output details [HaplotypeTools_details]
-	  -u Output relatives summary [HaplotypeTools_relatives_summary]
-	  -e Output clade summary, if -c used [HaplotypeTools_clade_summary]
-	  -w Output windows [HaplotypeTools_windows]\n";
+          -u Output relatives summary [HaplotypeTools_relatives_summary]
+          -e Output clade summary, if -c used [HaplotypeTools_clade_summary]
+          -w Output windows [HaplotypeTools_windows]\n";
 our($opt_a, $opt_b, $opt_c, $opt_d, $opt_e, $opt_f, $opt_i, $opt_l, $opt_m, $opt_n, $opt_p, $opt_s, $opt_t, $opt_u, $opt_v, $opt_w, $opt_z);
 getopt('abcdefilmnpstuvwz');
 die $usage unless ($opt_a && $opt_b && $opt_n && $opt_p);
@@ -36,7 +36,7 @@ foreach($opt_a, $opt_b, $opt_n, $opt_p) { die "Cannot open $_ : $!\n" unless (-e
 if(!defined $opt_d) { $opt_d = 'n'; }
 if(!defined $opt_f) { $opt_f = "HaplotypeTools_output"; }
 if(!defined $opt_i) { $opt_i = "name"; }
-if(!defined $opt_m) { $opt_m = 500; }
+if(!defined $opt_m) { $opt_m = 100; }
 if(!defined $opt_t) { $opt_t = "/seq/annotation/bio_tools/FastTree/current/FastTreeMP"; }
 if(!defined $opt_s) { $opt_s = "HaplotypeTools_details"; }
 if(!defined $opt_u) { $opt_u = "HaplotypeTools_relatives_summary"; }

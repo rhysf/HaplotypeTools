@@ -10,17 +10,27 @@ use genome_array;
 ### rfarrer@broadinsitute.org
 
 # Opening commands 
-my $usage = "Usage: perl $0 -v <VCF's (separated by comma)> -f <reference FASTA> > outfile_PIA\n
+my $usage = "Usage: perl $0 -v <VCF's (separated by comma)> -f <reference FASTA>\n
 Optional: -c\tLength cut-off for minimum haplotype to be considered [10]
           -p\tPhased in any (1), Phased in all (2) [1]
-          -s\tSample names to restrict analysis too (separated by comma)\n";
-our($opt_c, $opt_f, $opt_p, $opt_v, $opt_s);
-getopt('cfpsv');
+          -s\tSample names to restrict analysis too (separated by comma)\n
+Outputs:  -u\tSummary [opt-v-PIA-p-Opt_p-c-Opt_c.summary]
+          -o\tOutput [opt-v-PIA-p-Opt_p-c-Opt_c.tab]";
+our($opt_c, $opt_f, $opt_o, $opt_p, $opt_s, $opt_u, $opt_v);
+getopt('cfopsuv');
 die $usage unless ($opt_v && $opt_f);
 if(!defined $opt_c) { $opt_c = 10; }
 if(!defined $opt_p) { $opt_p = 1; }
 my @files = split /,/, $opt_v;
 foreach(@files) { die "file $_ not readable: $!\n" if(! -e $_); }
+if(scalar(@files) eq 1) {
+	if(!defined $opt_u) { $opt_u = "$files[0]-PIA-p-$opt_p-c-$opt_c.summary"; }
+	if(!defined $opt_o) { $opt_o = "$files[0]-PIA-p-$opt_p-c-$opt_c.tab"; }
+}
+else {
+	if(!defined $opt_u) { $opt_u = "$files[0]-plus_other_VCFs-PIA-p-$opt_p-c-$opt_c.summary"; }
+	if(!defined $opt_o) { $opt_o = "$files[0]-plus_other_VCFs-PIA-p-$opt_p-c-$opt_c.tab"; }
+}
 die "file $opt_f not readable : $!\n" if(! -e $opt_f);
 my %samples;
 my $number_of_samples_wanted = 0;
@@ -131,6 +141,10 @@ foreach my $file(@files) {
 }
 warn "Identified haplotypes on " . scalar(keys(%haplotype_regions)) . " supercontigs\n";
 
+# Output files
+open my $ofh1, '>', $opt_o or die "Cannot open $opt_o : $!\n";
+open my $ofh2, '>', $opt_u or die "Cannot open $opt_u : $!\n";
+
 # Summarise and print
 warn "Converting arrays into haplotype locations...\n";
 my ($PIA, $sum_tally_haplotypes) = (0, 0);
@@ -167,7 +181,7 @@ CONTIGS: foreach my $contig(sort keys %{$genome_coverage}) {
 				if($hap_length > $opt_c) {
 					$PIA+=$hap_length;
 					$sum_tally_haplotypes++;
-					print "$contig\t$start_of_no_alignment\t$current\n";
+					print $ofh1 "$contig\t$start_of_no_alignment\t$current\n";
 				} else {
 					$PIA_excluded+=$hap_length;
 					$sum_tally_haplotypes_excluded++;
@@ -179,9 +193,9 @@ CONTIGS: foreach my $contig(sort keys %{$genome_coverage}) {
 }
 
 # Summary
-warn "Setting: $opt_p (1=phased in any, 2=phased in all)\n";
-warn "PIA (nt) = $PIA\n";
-warn "Number of haplotypes = $sum_tally_haplotypes\n\n";
-warn "PIA excluded (<$opt_c nt) = $PIA_excluded\n";
-warn "Number of haplotypes excluded (<$opt_c nt) = $sum_tally_haplotypes_excluded\n";
+print $ofh2 "Setting: $opt_p (1=phased in any, 2=phased in all)\n";
+print $ofh2 "PIA (nt) = $PIA\n";
+print $ofh2 "Number of haplotypes = $sum_tally_haplotypes\n\n";
+print $ofh2 "PIA excluded (<$opt_c nt) = $PIA_excluded\n";
+print $ofh2 "Number of haplotypes excluded (<$opt_c nt) = $sum_tally_haplotypes_excluded\n";
 

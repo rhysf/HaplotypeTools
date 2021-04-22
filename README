@@ -24,7 +24,7 @@ git clone git@github.com:rhysf/HaplotypeTools.git
 cd HaplotypeTools/
 perl HaplotypeTools.pl -v <unphased.vcf> -b <sorted BAMs (separated by comma)> -u <VCF sample names in order of input BAM files (separated by comma)> -f reference.fasta
 perl util/VCF_phased_to_PIA.pl -v phased_sample1.vcf -f reference.fasta > phased_sample1.PIA
-perl util/VCF_phased_and_PIA_to_FASTA.pl -v phased_sample1.vcf -l phased_sample1.PIA -r reference.fasta
+perl util/VCF_phased_and_PIA_to_FASTA.pl -v phased_sample1.vcf -l phased_sample1.vcf-PIA-p-1-c-10.tab -r reference.fasta
 perl util/FASTA_compare_sequences.pl -f phased_sample1.PIA_1.fasta -a phased_sample1.PIA_2.fasta -o a > phased_sample1.PIA.summary
 
 Example pipeline for comparing haplotypes to other genomes
@@ -45,13 +45,13 @@ Sample1	clade1
 Sample2	clade1
 Sample3	clade2
 
-perl util/VCF_phased_to_PIA.pl -v phased_sample1.vcf,phased_sample2.vcf,phased_sample3.vcf -f reference.fasta -s 1 > phased_samples1-3.PIA.summary
-perl util/VCF_phased_and_PIA_to_FASTA.pl -v phased_sample1.vcf -l phased_samples1-3.PIA -r reference.fasta 
-perl util/Haplotype_placer.pl -p phased_samples1-3.PIA.summary -a phased_sample1.PIA_1.fasta -b phased_sample1.PIA_2.fasta -n Name_Type_Location.tab 
+perl util/VCF_phased_to_PIA.pl -v phased_sample1.vcf,phased_sample2.vcf,phased_sample3.vcf -f reference.fasta
+perl util/VCF_phased_and_PIA_to_FASTA.pl -v phased_sample1.vcf -l phased_sample1.vcf-plus_other_VCFs-PIA-p-1-c-10.tab -r reference.fasta 
+perl util/Haplotype_placer.pl -p phased_sample1-plus_other_VCFs-PIA-p-1-c-10.tab -a phased_sample1.vcf-plus_other_VCFs-PIA-p-1-c-10.tab_1.fasta -b phased_sample1.vcf-plus_other_VCFs-PIA-p-1-c-10.tab_2.fasta -n Name_Type_Location.tab 
 
 For window plots as well:
 
-perl util/Haplotype_placer.pl -p phased_sample1.PIA.comparison -a phased_sample1.PIA_1.fasta -b phased_sample1.PIA_2.fasta -n Name_Type_Location.tab -d y -l reference.fasta
+perl util/Haplotype_placer.pl -p phased_sample1-plus_other_VCFs-PIA-p-1-c-10.tab -a phased_sample1-plus_other_VCFs-PIA-p-1-c-10.tab_1.fasta -b phased_sample1-plus_other_VCFs-PIA-p-1-c-10.tab_2.fasta -n Name_Type_Location.tab -d y -l reference.fasta
 perl util/Windows_haplotypes_to_R_figure.pl -w HaplotypeTools_windows
 
 Example pipeline for comparing phased samples
@@ -63,7 +63,7 @@ perl util/VCF_phased_compare_to_VCF_phased.pl -a phased_sample1.vcf -b phased_sa
 
 To locate genomic regions phased in multiple samples:
 
-perl util/VCF_phased_to_PIA.pl -v phased_sample1.vcf,phased_sample2.vcf,phased_sample3.vcf -f reference.fasta -p 2 > phased_samples1-3.PIA-p-2.summary
+perl util/VCF_phased_to_PIA.pl -v phased_sample1.vcf,phased_sample2.vcf,phased_sample3.vcf -f reference.fasta -p 2
 
 Description of example pipelines:
 --------------------------------
@@ -191,6 +191,8 @@ Parameters: -v <VCF's (separated by comma)>
 Optional:   -c Length cut-off for minimum haplotype to be considered [10]
             -p Phased in any (1), Phased in all (2) [1]
             -s Sample names to restrict analysis too (separated by comma)
+Output:     -u Summary [opt-v-PIA-p-Opt_p-c-Opt_c.summary]
+            -o Output [opt-v-PIA-p-Opt_p-c-Opt_c.tab]
 
 VCF_phased_validate_and_assign_phase_groups.pl
 Parameters: -v <VCF-phased-Sample_Number (from VCF_phase.pl)>

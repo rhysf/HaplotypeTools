@@ -17,20 +17,51 @@ Hash::Merge
 Samtools v0.1.10 or higher (samtools.sourceforge.net)
 FastTree (http://www.microbesonline.org/fasttree/)
 
-Getting started / example pipeline for phasing individual sample:
------------------------------------
+Getting started / example pipeline for phasing individual sample
+----------------------------------------------------------------
 
 git clone git@github.com:rhysf/HaplotypeTools.git
 cd HaplotypeTools/
-perl HaplotypeTools.pl -v <unphased.vcf> -b <sorted BAMs (separated by comma)> -u <VCF sample names in order of input BAM files (separated by comma)> -f reference.fasta
-perl util/VCF_phased_to_PIA.pl -v phased_sample1.vcf -f reference.fasta > phased_sample1.PIA
-perl util/VCF_phased_and_PIA_to_FASTA.pl -v phased_sample1.vcf -l phased_sample1.vcf-PIA-p-1-c-10.tab -r reference.fasta
-perl util/FASTA_compare_sequences.pl -f phased_sample1.PIA_1.fasta -a phased_sample1.PIA_2.fasta -o a > phased_sample1.PIA.summary
+perl HaplotypeTools.pl -v <vcf> -b <sorted BAM> -u <VCF sample name> -f <reference.fasta>
+perl util/VCF_phased_to_PIA.pl \
+	-v <vcf-Phased-m-4-c-90-r-10000.vcf> \
+	-f <reference.fasta>
+perl util/VCF_phased_and_PIA_to_FASTA.pl \
+	-v <vcf-Phased-m-4-c-90-r-10000.vcf> \
+	-l <vcf-Phased-m-4-c-90-r-10000.vcf-PIA-p-1-c-10-s-all.tab> \
+	-r <reference.fasta>
+perl util/FASTA_compare_sequences.pl \
+	-f <vcf-Phased-m-4-c-90-r-10000.vcf-PIA-p-1-c-10-s-all.tab_1.fasta> \
+	-a <vcf-Phased-m-4-c-90-r-10000.vcf-PIA-p-1-c-10-s-all.tab_2.fasta> \ 
+	-o a > summary
+
+Example pipeline for phasing multi sample VCF
+---------------------------------------------
+
+perl HaplotypeTools.pl -v <multi sample vcf> \
+	-b <sorted BAMs (separated by comma)> \
+	-u <VCF sample names in order of input BAM files (separated by comma)> \
+	-f <reference.fasta>
+perl util/VCF_phased_to_PIA.pl \
+	-v <vcf-Phased-m-4-c-90-r-10000.vcf> \
+	-f <reference.fasta>
+	[if PIA is only for subset of samples] -s <VCF sample names to restrict analysis to>
+perl util/VCF_phased_and_PIA_to_FASTA.pl \
+	-v <vcf-Phased-m-4-c-90-r-10000.vcf> \
+	-l <vcf-Phased-m-4-c-90-r-10000.vcf-PIA-p-1-c-10-s-all.tab> \
+	-r <reference.fasta>
+	-u <sample name in VCF to pull haplotypes from>
+perl util/FASTA_compare_sequences.pl \
+	-f <vcf-Phased-m-4-c-90-r-10000.vcf-PIA-p-1-c-10-s-<opt_u>.tab_1.fasta> \
+	-a <vcf-Phased-m-4-c-90-r-10000.vcf-PIA-p-1-c-10-s-<opt_u>.tab_2.fasta> \ 
+	-o a > summary
 
 Example pipeline for comparing haplotypes to other genomes
 ----------------------------------------------------------
 
-perl util/VCF_and_FASTA_to_consensus_FASTA.pl -v sample1.vcf -r reference.fasta
+perl util/VCF_and_FASTA_to_consensus_FASTA.pl \
+	-v <sample1.vcf> \
+	-r <reference.fasta>
 
 Will make your consensus genomes. Next, we need to make a tabular file in the 
 following format (Name_Type_Location.tab) E.g.:
@@ -45,28 +76,49 @@ Sample1	clade1
 Sample2	clade1
 Sample3	clade2
 
-perl util/VCF_phased_to_PIA.pl -v phased_sample1.vcf,phased_sample2.vcf,phased_sample3.vcf -f reference.fasta
-perl util/VCF_phased_and_PIA_to_FASTA.pl -v phased_sample1.vcf -l phased_sample1.vcf-plus_other_VCFs-PIA-p-1-c-10.tab -r reference.fasta 
-perl util/Haplotype_placer.pl -p phased_sample1-plus_other_VCFs-PIA-p-1-c-10.tab -a phased_sample1.vcf-plus_other_VCFs-PIA-p-1-c-10.tab_1.fasta -b phased_sample1.vcf-plus_other_VCFs-PIA-p-1-c-10.tab_2.fasta -n Name_Type_Location.tab 
+perl util/VCF_phased_to_PIA.pl \
+	-v <phased_sample1.vcf>,<phased_sample2.vcf>,<phased_sample3.vcf> \
+	-f <reference.fasta>
+perl util/VCF_phased_and_PIA_to_FASTA.pl \
+	-v <phased_sample1.vcf> \
+	-l <phased_sample1.vcf-plus_other_VCFs-PIA-p-1-c-10-s-all.tab> \
+	-r <reference.fasta> 
+perl util/Haplotype_placer.pl \
+	-p <phased_sample1-plus_other_VCFs-PIA-p-1-c-10-s-all.tab> \
+	-a <phased_sample1.vcf-plus_other_VCFs-PIA-p-1-c-10-s-all.tab_1.fasta> \
+	-b <phased_sample1.vcf-plus_other_VCFs-PIA-p-1-c-10-s-all.tab_2.fasta> \
+	-n <Name_Type_Location.tab>
 
-For window plots as well:
+For window plots as well
+------------------------
 
-perl util/Haplotype_placer.pl -p phased_sample1-plus_other_VCFs-PIA-p-1-c-10.tab -a phased_sample1-plus_other_VCFs-PIA-p-1-c-10.tab_1.fasta -b phased_sample1-plus_other_VCFs-PIA-p-1-c-10.tab_2.fasta -n Name_Type_Location.tab -d y -l reference.fasta
+perl util/Haplotype_placer.pl \
+	-p <phased_sample1-plus_other_VCFs-PIA-p-1-c-10-s-all.tab> \
+	-a <phased_sample1.vcf-plus_other_VCFs-PIA-p-1-c-10-s-all.tab_1.fasta> \
+	-b <phased_sample1.vcf-plus_other_VCFs-PIA-p-1-c-10-s-all.tab_2.fasta> \
+	-n <Name_Type_Location.tab> \
+	-d y \
+	-l <reference.fasta>
 perl util/Windows_haplotypes_to_R_figure.pl -w HaplotypeTools_windows
 
-Example pipeline for comparing phased samples
----------------------------------------------
+Example pipeline to identify crossovers
+---------------------------------------
 
-To identify crossovers:
+perl util/VCF_phased_compare_to_VCF_phased.pl \
+	-a <phased_sample1.vcf> \
+	-b <phased_sample2.vcf> \
+	-o sample1_vs_sample2
 
-perl util/VCF_phased_compare_to_VCF_phased.pl -a phased_sample1.vcf -b phased_sample2.vcf -o sample1_vs_sample2
+or
 
-To locate genomic regions phased in multiple samples:
+perl util/VCF_phased_compare_to_VCF_phased.pl \
+	-a <phased.vcf> \
+	-c <sample ID 1 from VCF>
+	-d <sample ID 2 from VCF>
+	-o sample1_vs_sample2
 
-perl util/VCF_phased_to_PIA.pl -v phased_sample1.vcf,phased_sample2.vcf,phased_sample3.vcf -f reference.fasta -p 2
-
-Description of example pipelines:
---------------------------------
+Description
+-----------
 
 HaplotypeTools is a set of scripts designed to phase aligned WGS data, whereby
 haplotypes are constructed from sufficient numbers of reads overlapping two or
@@ -82,7 +134,12 @@ Genomic regions that are phased in >=1 VCF (or multiple samples within a VCF)
 are called 'phased in any/all; PIA'. Phased in any (-p 1) is the default, while 
 phased in all (-p 2) will output only regions phased in every sample.
 PIA in either setting serve as an intermediate file needed to 
-extract haplotypes in FASTA format, as well as HaplotypePlacer:
+extract haplotypes in FASTA format, as well as HaplotypePlacer. For comparing
+haplotypes to consensus genomes, phased in any (-p 1) is best, as it will maximise
+the number of genomic regions, or phased in just a single sample for fewer sites
+that are most informative to that sample. Some applications may require identifying
+regions that are phased in 2+ samples, in which case phased in all (-p 2) should
+be used.
 
 Haplotype_placer.pl will compare haplotypes from a phased VCF and consensus
 genomes for other isolates, and iteratively construct trees using FastTree to
@@ -191,8 +248,8 @@ Parameters: -v <VCF's (separated by comma)>
 Optional:   -c Length cut-off for minimum haplotype to be considered [10]
             -p Phased in any (1), Phased in all (2) [1]
             -s Sample names to restrict analysis too (separated by comma)
-Output:     -u Summary [opt-v-PIA-p-Opt_p-c-Opt_c.summary]
-            -o Output [opt-v-PIA-p-Opt_p-c-Opt_c.tab]
+Output:     -u Summary [opt-v-PIA-p-Opt_p-c-Opt_c-s-Opt_s.summary]
+            -o Output [opt-v-PIA-p-Opt_p-c-Opt_c-s-Opt_s.tab]
 
 VCF_phased_validate_and_assign_phase_groups.pl
 Parameters: -v <VCF-phased-Sample_Number (from VCF_phase.pl)>

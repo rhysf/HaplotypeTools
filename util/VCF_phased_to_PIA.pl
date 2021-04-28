@@ -6,6 +6,7 @@ use lib "$Bin/../modules";
 use read_VCF;
 use read_FASTA;
 use genome_array;
+use Data::Dumper;
 
 ### rfarrer@broadinsitute.org
 
@@ -13,34 +14,35 @@ use genome_array;
 my $usage = "Usage: perl $0 -v <VCF's (separated by comma)> -f <reference FASTA>\n
 Optional: -c\tLength cut-off for minimum haplotype to be considered [10]
           -p\tPhased in any (1), Phased in all (2) [1]
-          -s\tSample names to restrict analysis too (separated by comma)\n
-Outputs:  -u\tSummary [opt-v-PIA-p-Opt_p-c-Opt_c.summary]
-          -o\tOutput [opt-v-PIA-p-Opt_p-c-Opt_c.tab]";
+          -s\tSample names to restrict analysis too (separated by comma) [all]\n
+Outputs:  -u\tSummary [opt-v-PIA-p-Opt_p-c-Opt_c-s-Opt_s.summary]
+          -o\tOutput [opt-v-PIA-p-Opt_p-c-Opt_c-s-Opt_s.tab]\n";
 our($opt_c, $opt_f, $opt_o, $opt_p, $opt_s, $opt_u, $opt_v);
 getopt('cfopsuv');
 die $usage unless ($opt_v && $opt_f);
 if(!defined $opt_c) { $opt_c = 10; }
 if(!defined $opt_p) { $opt_p = 1; }
+if(!defined $opt_s) { $opt_s = 'all'; }
 my @files = split /,/, $opt_v;
 foreach(@files) { die "file $_ not readable: $!\n" if(! -e $_); }
 if(scalar(@files) eq 1) {
-	if(!defined $opt_u) { $opt_u = "$files[0]-PIA-p-$opt_p-c-$opt_c.summary"; }
-	if(!defined $opt_o) { $opt_o = "$files[0]-PIA-p-$opt_p-c-$opt_c.tab"; }
+	if(!defined $opt_u) { $opt_u = "$files[0]-PIA-p-$opt_p-c-$opt_c-s-$opt_s.summary"; }
+	if(!defined $opt_o) { $opt_o = "$files[0]-PIA-p-$opt_p-c-$opt_c-s-$opt_s.tab"; }
 }
 else {
-	if(!defined $opt_u) { $opt_u = "$files[0]-plus_other_VCFs-PIA-p-$opt_p-c-$opt_c.summary"; }
-	if(!defined $opt_o) { $opt_o = "$files[0]-plus_other_VCFs-PIA-p-$opt_p-c-$opt_c.tab"; }
+	if(!defined $opt_u) { $opt_u = "$files[0]-plus_other_VCFs-PIA-p-$opt_p-c-$opt_c-s-$opt_s.summary"; }
+	if(!defined $opt_o) { $opt_o = "$files[0]-plus_other_VCFs-PIA-p-$opt_p-c-$opt_c-s-$opt_s.tab"; }
 }
 die "file $opt_f not readable : $!\n" if(! -e $opt_f);
 my %samples;
 my $number_of_samples_wanted = 0;
-if(defined $opt_s) { 
+if($opt_s ne 'all') { 
 	my @samples_array = split /,/, $opt_s; 
 	$number_of_samples_wanted = scalar(@samples_array);
 	foreach my $sample(@samples_array) {
 		$samples{$sample} = 1;
 	}
-}
+} 
 
 # Phase group size and metrics etc.
 my (%phase_group_lengths, %covered_regions, %haplotype_regions);
@@ -111,7 +113,12 @@ foreach my $file(@files) {
 			$phased_positions++;
 
 			# Phase metrics
+			next if($isolate_name ne 'Hybrid-SA-EC3');
+			warn "sample $isolate_name : $line\n";
+			next if($position < 3668090);
 			($phase_info) = vcflines::get_phase_metrics($phase_info, $$VCF_line{$phased_id}, $position, $contig); 
+			print Dumper($phase_info);
+			die "end here\n" if($position > 3668306);
 			#warn "$line ... Previous info = $$phase_info{'previous_group'}, $$phase_info{'previous_first_position'}, $$phase_info{'previous_last_position'}\n";
 			next VCF1 if(!defined $$phase_info{'save'});
 
@@ -152,7 +159,7 @@ my ($PIA_excluded, $sum_tally_haplotypes_excluded) = (0, 0);
 my $number_of_files_needed = 1;
 if($opt_p eq 2) { 
 	# if sample name defined as well as asking for phased in all
-	if(defined $opt_s) { $number_of_files_needed = $number_of_samples_wanted; }
+	if($opt_s ne 'all') { $number_of_files_needed = $number_of_samples_wanted; }
 	# otherwise everything
 	else { $number_of_files_needed = $sum_number_of_samples; }
 }
@@ -161,13 +168,13 @@ CONTIGS: foreach my $contig(sort keys %{$genome_coverage}) {
 	my $length = $$seq_lengths{$contig};
 
 	my $am_i_searchin =0;
-	my $start_of_no_alignment;
+	my $start_of_new_haplotype;
 
 	for(my $i=0; $i<$length;$i++) {
 		# A phased region found or continues
 		if($test[$i] eq $number_of_files_needed) {
 			## Found start
-			if($am_i_searchin eq 0) { $start_of_no_alignment = ($i+1); }
+			if($am_i_searchin eq 0) { $start_of_new_haplotype = $i; }
 			$am_i_searchin=1;
 		}
 
@@ -175,19 +182,19 @@ CONTIGS: foreach my $contig(sort keys %{$genome_coverage}) {
 		if((($opt_p eq 1) && (($test[$i] eq 0) || ($i eq ($length-1)))) ||
 		   (($opt_p eq 2) && (($test[$i] < $number_of_files_needed) || ($i eq ($length-1))))) {
 			$am_i_searchin=0;
-			if(defined $start_of_no_alignment) {
+			if(defined $start_of_new_haplotype) {
 				my $current = ($i+1);
-				my $hap_length = ($current - $start_of_no_alignment);
+				my $hap_length = ($current - $start_of_new_haplotype);
 				if($hap_length > $opt_c) {
 					$PIA+=$hap_length;
 					$sum_tally_haplotypes++;
-					print $ofh1 "$contig\t$start_of_no_alignment\t$current\n";
+					print $ofh1 "$contig\t$start_of_new_haplotype\t$current\n";
 				} else {
 					$PIA_excluded+=$hap_length;
 					$sum_tally_haplotypes_excluded++;
 				}
 			}
-			undef $start_of_no_alignment;
+			undef $start_of_new_haplotype;
 		}
 	}
 }
@@ -198,4 +205,3 @@ print $ofh2 "PIA (nt) = $PIA\n";
 print $ofh2 "Number of haplotypes = $sum_tally_haplotypes\n\n";
 print $ofh2 "PIA excluded (<$opt_c nt) = $PIA_excluded\n";
 print $ofh2 "Number of haplotypes excluded (<$opt_c nt) = $sum_tally_haplotypes_excluded\n";
-

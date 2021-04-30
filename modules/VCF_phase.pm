@@ -13,6 +13,7 @@ use File::Basename;
 use FindBin qw($Bin);
 use lib "$Bin/modules";
 use read_VCF;
+use read_BAM;
 
 ### rfarrer@broadinstitute.org
 
@@ -75,9 +76,18 @@ sub phase_reads {
 	open my $fh, '<', $alignment_file or die "Cannot open $alignment_file : $!\n";
 	SAMSEQS: while(my $line=<$fh>) {
 		chomp $line;
-		#warn "Read $line\n";
 		my @bits = split /\t/, $line;
-		my ($start, $end, $query_dna, $query_start, $query_end) = @bits;
+		my ($start, $end, $query_dna, $query_start, $query_end, $cigar) = @bits;
+
+		# Remove softclipping from query dna
+		my $cigar_soft_clipping_start_count = bamlines::count_softclipping_start($cigar);
+		if($cigar_soft_clipping_start_count > 0) {
+			#warn "Remove softclipping..\n";
+			#warn "line = $line\n";
+			$query_dna = substr $query_dna, ($query_start - 1), $query_end;
+			#warn "new: $query_dna\n";
+		}
+		my $read_length = length($query_dna);
 
 		# Find reads overlapping 2 or more VCF positions 
 		my $saved_vcf_positions = '';
@@ -93,10 +103,14 @@ sub phase_reads {
 		# Go through each VCF Position associated with this read and 
 		# (1) phase or if alredy phased (2) check
 		#my $phase_position;
+		my $length_of_possible_indels_in_read = 0;
 		my @VCF_positions = split /\n/, $saved_vcf_positions;
-		VCFPOSITIONS: foreach my $line(@VCF_positions) {
-			my ($VCF_line) = vcflines::read_VCF_lines($line);
+		VCFPOSITIONS: foreach my $vcfline(@VCF_positions) {
+			my ($VCF_line) = vcflines::read_VCF_lines($vcfline);
 			my ($base_type_id, $sample_id, $genotype_id) = ("base_type$sample_number", "sample_info$sample_number", "GT$sample_number");
+			my $base1_id = ($sample_number . "base1");
+			my $base2_id = ($sample_number . "base2");
+
 			my $supercontig = $$VCF_line{'supercontig'};
 			my $base_type = $$VCF_line{$base_type_id};
 			my $position = $$VCF_line{'position'};
@@ -110,17 +124,113 @@ sub phase_reads {
 			my $sample = $$VCF_line{$sample_id};
 			my $genotype = $$VCF_line{$genotype_id};
 			my $number_of_samples = $$VCF_line{'number_of_samples'};
+			my $polymorphic_position = ($position - $start);
+			my $all_bases = "$ref_base,$consensus";
+			my $base1 = $$VCF_line{$base1_id};
+			my $base2 = $$VCF_line{$base2_id};
 
 			# Only phase heterozygous here
-			next VCFPOSITIONS if($base_type ne 'heterozygous');
+			#next VCFPOSITIONS if($base_type ne 'heterozygous');
+			next VCFPOSITIONS if($base_type !~ m/het/);
+
+			# Undefined
+			next VCFPOSITIONS if(($base1 eq 'N') || ($base2 eq 'N'));
 			#warn "overlapping VCF (het) lines $line\n";
 
-			# Pull out the polymorphic base
-			my $polymorphic_position = ($position - $start);
-			my $base = substr $query_dna, $polymorphic_position, 1;
+			# If indel, does it go over the end of read
+			my $max_length_ref_or_consensus = length($base1);
+			if(length($base1) < length($base2)) { $max_length_ref_or_consensus = length($base2); }
+			$length_of_possible_indels_in_read += $max_length_ref_or_consensus;
+			next VCFPOSITIONS if(($polymorphic_position + $length_of_possible_indels_in_read) > $read_length);
+
+			# No polymorphic bases (snps/hets arent showing up in cigar)\
+			#my $no_polymorphic_bases = ($read_length . 'M');
+			#if($cigar eq $no_polymorphic_bases) { $base = $ref_base; }
+			# But X and = don't seem to present in Samtools. Maybe tool dependent. So can't rely on this. 
+			# But will rely on S, M, I and D where possible
+			my ($base);
+
+			# Pull out the polymorphic base of heterozygous positions
+			if($base_type eq 'heterozygous') {
+				$base = substr $query_dna, $polymorphic_position, 1;
+			}
+
+			# Pull out the polymorphic base of het_insertion and het_deletion
+			elsif($base_type =~ m/insertion|deletion/) {
+
+				# Indel listed in cigar?
+				my $indel_in_cigar = bamlines::check_for_indel_in_cigar($cigar, $polymorphic_position);
+				my $possible_ref_base = substr $query_dna, $polymorphic_position, length($base1);
+				my $possible_consensus_base = substr $query_dna, $polymorphic_position, length($base2);
+
+				# start = correct start
+				if(length($base1) eq 1) {
+
+					#warn "possible consensus base = substr $query_dna $polymorphic_position $length_consensus\n";
+					#warn "$possible_ref_base and $possible_consensus_base matching $ref_base or $consensus?\n";
+					# No match (error or not found in VCF)
+					if(($possible_ref_base ne $base1) && ($possible_consensus_base ne $base2)) {
+						if($indel_in_cigar eq 'n') { $base = $possible_ref_base; }
+						else { $base = $possible_consensus_base; }
+					}
+
+					# Something matched
+					else {
+						# Might be consensus base, or something different
+						if($indel_in_cigar eq 'y') { $base = $possible_consensus_base; }
+						else {
+							if($possible_ref_base eq $base1) { $base = $possible_ref_base; }
+							elsif($possible_consensus_base eq $base2) { $base = $possible_consensus_base; }
+							else {
+								#warn "WARNING 1: Unrecognised base: base type $base_type genotype $genotype 1) $possible_ref_base and $base1 ($ref_base) 2) $possible_consensus_base and $base2 ($consensus) 3) $indel_in_cigar 4) $vcfline 5) $line\n";
+								next VCFPOSITIONS;
+							}
+						}
+					}
+				}
+
+				# ref base length > 1
+				else {
+
+					# No match (error or not found in VCF)
+					if(($possible_ref_base ne $base1) && ($possible_consensus_base ne $base2)) {
+						if(length($base2) eq 1) {
+							# e.g. ref AGG consensus A. Base=A
+							if($indel_in_cigar eq 'n') { $base = $possible_consensus_base; }
+							else { $base = $possible_ref_base; }
+						}
+						else {
+							#warn "WARNING 2: Unrecognised base: base type $base_type genotype $genotype 1) $possible_ref_base and $base1 ($ref_base) 2) $possible_consensus_base and $base2 ($consensus) 3) $indel_in_cigar 4) $vcfline 5) $line\n";
+							next VCFPOSITIONS;
+						}
+					}
+
+					# Something matched
+					else {
+						if($indel_in_cigar eq 'y') { $base = $possible_ref_base; }
+						else {
+							if($possible_ref_base eq $base1) { $base = $possible_consensus_base; }
+							elsif($possible_consensus_base eq $base2) { $base = $possible_ref_base; }
+							else {
+								#warn "WARNING 3: Unrecognised base: base type $base_type genotype $genotype 1) $possible_ref_base and $base1 ($ref_base) 2) $possible_consensus_base and $base2 ($consensus) 3) $indel_in_cigar 4) $vcfline 5) $line\n";
+								next VCFPOSITIONS;
+							}
+						}
+					}
+				}
+
+				#warn "polymorphic position = $position - $start = $polymorphic_position\n";
+				#warn "base = $base\n";
+				#die "end here";
+			}
+
+			else {
+				warn "WARNING: Unrecognised Base type = $base_type\n";
+				next VCFPOSITIONS;
+				#die "end here";
+			}
 
 			# Save phase info in the id column
-			my $all_bases = "$ref_base,$consensus";
 			$id = &define_phase_position($base, $all_bases, $id, $read_count);
 
 			# Line for printing (leave id blank for read counts & line missing samples columns)
@@ -137,9 +247,9 @@ sub phase_reads {
 			$$VCF_hash{$position} = $new_line;
 
 			# Check it has worked
-			my @line_parts = split /\t/, $line;
+			my @line_parts = split /\t/, $vcfline;
 			my @new_line_parts = split /\t/, $new_line;
-			die "Error. New line has different number of parts to old line:\n$line\n$new_line\n" if(scalar(@line_parts) ne scalar(@new_line_parts));
+			die "Error. New line has different number of parts to old line:\n$vcfline\n$new_line\n" if(scalar(@line_parts) ne scalar(@new_line_parts));
 		}
 		$read_count++;
 	}
@@ -417,5 +527,6 @@ sub VCF_phased_to_contig_pos_haps_to_variant {
 	close $fh;
 	return \%polymorphisms;
 }
+
 
 1;

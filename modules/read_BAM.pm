@@ -77,22 +77,77 @@ sub return_lines_from_BioDBHTS_array {
 	my ($alignments) = $_[0];
 	my $lines;
 	SAMSEQS: for my $a(@{$alignments}) {
+		# where does the alignment start in the reference sequence
 		my $start = $a->start;
 		my $end = $a->end;
+		# query/read sequence
 		my $query_dna = $a->query->dna; 
+		# where does the alignment start in the query sequence
 		my $query_start = $a->query->start;     
 		my $query_end   = $a->query->end;
+		# new for determining indels
+		my $cigar = $a->cigar_str;
 
 		# Ignore reads specifying/aligning over indels
-		my $read_length = ($query_end - $query_start);
-		my $ref_seq_length = ($end - $start);
-		next SAMSEQS if ($read_length ne $ref_seq_length);
+		#my $read_length = ($query_end - $query_start);
+		#my $ref_seq_length = ($end - $start);
+		#next SAMSEQS if ($read_length ne $ref_seq_length);
 
 		# Save
-		my $line = join "\t", $start, $end, $query_dna, $query_start, $query_end;
+		my $line = join "\t", $start, $end, $query_dna, $query_start, $query_end, $cigar;
 		$lines .= "$line\n";
 	}
 	return $lines;
+}
+
+#### local subroutine
+sub check_for_indel_in_cigar {
+	my ($cigar, $pos) = @_;
+	my @cigar_parts = split (/(\d+)/, $cigar);
+	my $cumulative_position = 0;
+	my $indel_in_cigar = 'n';
+	my $softclipping_start = 0;
+	foreach my $cigar_part(@cigar_parts) {
+		next if($cigar_part eq '');
+		#warn "found $cigar_part\n";
+		if($cigar_part =~ m/\d+/) { $cumulative_position += $cigar_part; }
+		else {
+			# found insertion of deletion? (+1 for 0 based dna coord, and +1 because the indel is listed after the number)
+			if($cumulative_position eq ($pos + 2)) {
+				if($cigar_part =~ m/I|D/) { $indel_in_cigar = 'y'; }
+				#warn "mutation = $cigar_part\n";
+			}
+
+			# softclipping start.
+			if($cigar_part eq 'S') {
+				if($softclipping_start eq 0) { 
+					$softclipping_start = 1;
+					$cumulative_position = 0;
+				}
+			}
+		}
+		#warn "cumulative position = $cumulative_position\n";
+	}
+	return $indel_in_cigar;
+}
+
+sub count_softclipping_start {
+	my $cigar = $_[0];
+	my $count = 0;
+
+	my @cigar_parts = split (/(\d+)/, $cigar);
+	my $cumulative_position = 0;
+	my $indel_in_cigar = 'n';
+	foreach my $cigar_part(@cigar_parts) {
+		next if($cigar_part eq '');
+		#warn "found $cigar_part\n";
+		if($cigar_part =~ m/\d+/) { $cumulative_position += $cigar_part; }
+		else {
+			if($cigar_part eq 'S') { $count = $cumulative_position; }
+			last;
+		}
+	}
+	return $count;
 }
 
 1;

@@ -8,6 +8,7 @@ $VERSION = 0.1;
 @EXPORT = ();
 @EXPORT_OK = qw();
 %EXPORT_TAGS = (DEFAULT => [qw()], ALL =>[qw()]);
+use lib "/home/unix/rfarrer/perl5/lib/perl5/x86_64-linux-thread-multi/";
 use Bio::DB::HTS;
 use Data::Dumper;
 

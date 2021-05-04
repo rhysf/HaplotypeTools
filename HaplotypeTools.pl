@@ -156,12 +156,17 @@ if($$HT_data{'steps'} =~ m/5/) {
 		warn "\tProcessing $contig...\n";
 
 		# Foreach window
-		for(my $i=0; $i<$$fasta_lengths{$contig}; $i+=$$HT_data{'max_phase_length'}) {
+		WINDOW: for(my $i=0; $i<$$fasta_lengths{$contig}; $i+=$$HT_data{'max_phase_length'}) {
 			my $stop_window = ($i + $$HT_data{'max_phase_length'});
 
 			# VCF_file for most of the VCF info
 			my $VCF_file = "$$HT_data{'out_folder'}/$$HT_data{'VCF_filename'}-$contig-$i-$stop_window";
-			die "VCF file not found: $VCF_file. Re-run Step 1 : $!" if(! -e $VCF_file);
+
+			# Sometimes no positions in VCF or reads in BAM, so don't try and phase (but give warning)
+			if(! -e $VCF_file) {
+				warn "VCF file not found: $VCF_file. Either no positions in VCF in that window or need to re-run step 1\n";
+				next WINDOW;
+			}
 
 			# Save VCF to memory
 			my $VCF_positions_to_line = vcflines::VCF_to_position_to_line_hash($VCF_file);

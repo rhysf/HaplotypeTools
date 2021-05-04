@@ -308,7 +308,8 @@ sub VCF_update_phase {
 
 	# Phase
 	if($task eq 'phase') {
-		$$VCF_line{'id'} = 'sample-' . $sample_number . '-phased;';
+		# don't overwrite read numbers for extending haps
+		$$VCF_line{'id'} .= 'sample-' . $sample_number . '-phased;';
 		$$VCF_line{'format'} .= ":PID"; # Needed so lines are valid for read_VCF
 
 		# Update every sample (necessary so lines are valid for read_VCF, even though not all samples are printed)

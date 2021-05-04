@@ -162,7 +162,7 @@ if($$HT_data{'steps'} =~ m/5/) {
 			# VCF_file for most of the VCF info
 			my $VCF_file = "$$HT_data{'out_folder'}/$$HT_data{'VCF_filename'}-$contig-$i-$stop_window";
 
-			# Sometimes no positions in VCF or reads in BAM, so don't try and phase (but give warning)
+			# Sometimes no positions in VCF so don't try and process (but give warning)
 			if(! -e $VCF_file) {
 				warn "VCF file not found: $VCF_file. Either no positions in VCF in that window or need to re-run step 1\n";
 				next WINDOW;
@@ -189,7 +189,14 @@ if($$HT_data{'steps'} =~ m/5/) {
 					die "Error: pos $pos not found in $file. Re-run steps 34\n" if(!defined $$VCF_positions_to_line{$pos});
 					if($id =~ m/phased/) { $phased_lines{$pos} = 1; }
 					my $saved_line = $$VCF_positions_to_line{$pos};
-					#my $VCF_line = vcflines::read_VCF_lines($saved_line);
+
+					# Save only "sample-" or "phase_info" info (not read numbers)
+					my @id_parts = split /\;/, $id;
+					my $new_id = '';
+					foreach my $id_part(@id_parts) {
+						if($id_part =~ m/^sample|^phase_info/) { $new_id .= "$id_part;"; }
+					}
+					$id = $new_id;
 
 					# Replace ID and sample
 					my @bits2 = split /\t/, $saved_line;

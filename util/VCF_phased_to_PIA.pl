@@ -113,12 +113,7 @@ foreach my $file(@files) {
 			$phased_positions++;
 
 			# Phase metrics
-			next if($isolate_name ne 'Hybrid-SA-EC3');
-			warn "sample $isolate_name : $line\n";
-			next if($position < 3668090);
 			($phase_info) = vcflines::get_phase_metrics($phase_info, $$VCF_line{$phased_id}, $position, $contig); 
-			print Dumper($phase_info);
-			die "end here\n" if($position > 3668306);
 			#warn "$line ... Previous info = $$phase_info{'previous_group'}, $$phase_info{'previous_first_position'}, $$phase_info{'previous_last_position'}\n";
 			next VCF1 if(!defined $$phase_info{'save'});
 

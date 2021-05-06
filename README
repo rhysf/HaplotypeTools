@@ -197,6 +197,12 @@ Output:     -f Output folder for genomic FASTA files and Trees [HaplotypeTools_o
             -s Output summary [HaplotypeTools_summary]
 	    -w Output windows [HaplotypeTools_windows]
 
+Haplotype_FASTA_files_to_compare_to_IRMS_het_sites.pl
+Parameters: -a <PIA_1 FASTA> 
+            -b <PIA_2 FASTA> 
+            -c <IRMS HET.fasta> 
+            -d <IRMS HET.details>
+
 VCF_and_FASTA_to_consensus_FASTA.pl 
 Parameters: -v <VCF> 
             -r <reference FASTA>

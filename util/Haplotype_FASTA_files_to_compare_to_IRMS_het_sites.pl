@@ -127,11 +127,21 @@ ID: foreach my $id(sort keys %{$$fasta1{'seq'}}) {
 		#warn "TP = $TP, $FP = $FP, correct base wrong hap = $correct_base_wrong_haplotype\n";
 	}
 
-	# No hap match
+	# No hap match - means all mutations are not introduced. Assign hap_match=1 as it doesn't matter either way
 	if(!defined $hap_match) {
 		
-		warn "\nNo hap match?\n";
-		die "end here\n";
+		#warn "Error: No hap match?\n";
+		#warn "contig = $contig\n";
+		#warn "start = $start\n";
+		#warn "end = $end\n";
+		#warn "seq 1 = $seq1\n";
+		#warn "seq 2 = $seq2\n";
+		#warn "truth set seq3 = $seq3_haplotype\n";
+		#warn "truth set seq4 = $seq4_haplotype\n";
+		#print Dumper(%IRMS_positions);
+		
+		#die "end here\n";
+		$hap_match = 1;
 	}
 
 	# Compare pairwise to identify FP (those non IRMS)

@@ -53,13 +53,13 @@ ID: foreach my $id(sort keys %{$$fasta1{'seq'}}) {
 	my $seq3_haplotype = substr $seq3, $truth_set_start, ($end - $truth_set_start);
 	my $seq4_haplotype = substr $seq4, $truth_set_start, ($end - $truth_set_start);
 
-	warn "contig = $contig\n";
-	warn "start = $start\n";
-	warn "end = $end\n";
-	warn "seq 1 =\n$seq1\n";
-	warn "seq 2 =\n$seq2\n";
-	warn "truth set seq3 =\n$seq3_haplotype\n";
-	warn "truth set seq4 =\n$seq4_haplotype\n";
+	#warn "contig = $contig\n";
+	#warn "start = $start\n";
+	#warn "end = $end\n";
+	#warn "seq 1 =\n$seq1\n";
+	#warn "seq 2 =\n$seq2\n";
+	#warn "truth set seq3 =\n$seq3_haplotype\n";
+	#warn "truth set seq4 =\n$seq4_haplotype\n";
 
 	# Pull IRMS details from those regions (pos -> nt -> introduced het)
 	my ($IRMS_positions, $num_mutations) = &save_number_mutations_in_region($irms_details, $contig, $truth_set_start, $end);
@@ -85,50 +85,50 @@ ID: foreach my $id(sort keys %{$$fasta1{'seq'}}) {
 	foreach my $positions(sort { $a <=> $b } keys %IRMS_positions) {
 
 		# Pull out bases of all four haplotypes (2 real, 2 truth)
-		warn "\nIRMS position = $positions\n";
+		#warn "\nIRMS position = $positions\n";
 		my $hap_position = ($positions - $truth_set_start);
-		warn "Hap position = $hap_position\n";
+		#warn "Hap position = $hap_position\n";
 		my $hap_base1 = substr $seq1, $hap_position, 1;
 		my $hap_base2 = substr $seq2, $hap_position, 1;
 		my $hap_base3 = substr $seq3_haplotype, $hap_position, 1;
 		my $hap_base4 = substr $seq4_haplotype, $hap_position, 1;
-		warn "Hap bases = \n";
-		warn "\t1 = $hap_base1\n"; 
-		warn "\t2 = $hap_base2\n";
-		warn "\t3 = $hap_base3\n"; 
-		warn "\t4 = $hap_base4\n";
+		#warn "Hap bases = \n";
+		#warn "\t1 = $hap_base1\n"; 
+		#warn "\t2 = $hap_base2\n";
+		#warn "\t3 = $hap_base3\n"; 
+		#warn "\t4 = $hap_base4\n";
 
 		# Compare
 
 		# TP / correct base
 		if(($hap_base1 eq $hap_base3) && ($hap_base2 eq $hap_base4)) { 
-			warn "1 = 3, 2 = 4\n";
+			#warn "1 = 3, 2 = 4\n";
 			if(!defined $hap_match) {
 				$hap_match = 1;
 				$TP++;
 			} 
 			elsif($hap_match eq 1) { $TP++; } 
 			else { 
-				warn "correct_base_wrong_haplotype\n";
+				#warn "correct_base_wrong_haplotype\n";
 				$correct_base_wrong_haplotype++; 
 			}
 		}
 		elsif(($hap_base1 eq $hap_base4) && ($hap_base2 eq $hap_base3)) { 
-			warn "1 = 4, 2 = 3\n";
+			#warn "1 = 4, 2 = 3\n";
 			if(!defined $hap_match) {
 				$hap_match = 2;
 				$TP++;
 			}
 			elsif($hap_match eq 2) { $TP++; } 
 			else { 
-				warn "correct_base_wrong_haplotype\n";
+				#warn "correct_base_wrong_haplotype\n";
 				$correct_base_wrong_haplotype++; 
 			}
 		}
 
 		# FP / incorrect base
 		else {
-			warn "$hap_base1 ne $hap_base3 or $hap_base4 ?\n";
+			#warn "$hap_base1 ne $hap_base3 or $hap_base4 ?\n";
 			$correct_position_not_match_truth_set++;
 		}
 		#warn "TP = $TP, $FP = $FP, correct base wrong hap = $correct_base_wrong_haplotype\n";
@@ -175,7 +175,6 @@ ID: foreach my $id(sort keys %{$$fasta1{'seq'}}) {
 	print "$id\t$TP\t$correct_position_not_match_truth_set\t$correct_base_wrong_haplotype\t$FP\n";
 
 	$count++;
-	die "end here after 5\n" if($count eq 5);
 }
 
 sub compare_sequences {

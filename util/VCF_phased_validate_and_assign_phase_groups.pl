@@ -51,7 +51,6 @@ foreach my $positions(sort { $a <=> $b } keys %{$VCF_position_to_line}) {
 
 # Go through VCF positions
 my %saved_phase_agree_and_disagree;
-my $phase_switch_genotype = 0;
 my $phase_block = 0;
 my $previous_VCF_entry;
 warn "Validate and assign phase groups...\n";
@@ -85,7 +84,6 @@ LINES: for(my $i=0; $i<scalar(@VCF_positions); $i++) {
 
 		# reset and new phase group
 		undef $previous_VCF_entry;
-		$phase_switch_genotype = 0;
 		$phase_block++; 
 		next LINES;
 	}
@@ -119,7 +117,6 @@ LINES: for(my $i=0; $i<scalar(@VCF_positions); $i++) {
 
 			# reset and new phase group
 			undef $previous_VCF_entry;
-			$phase_switch_genotype = 0;
 			$phase_block++; 
 			next LINES;
 		}
@@ -151,7 +148,6 @@ LINES: for(my $i=0; $i<scalar(@VCF_positions); $i++) {
 
 		# reset and new phase group
 		undef $previous_VCF_entry;
-		$phase_switch_genotype = 0;
 		$phase_block++; 
 		next LINES;
 	}
@@ -159,7 +155,6 @@ LINES: for(my $i=0; $i<scalar(@VCF_positions); $i++) {
 	# Save the first VCF position of the contig and move on to next VCF position
 	if(!defined $previous_VCF_entry) {
 		$previous_VCF_entry = $line; 
-		$phase_switch_genotype = 0;
 		$phase_block++;
 		if($opt_z eq 'y') { warn "Saving as the first phase_block: $phase_block\n"; }
 		next LINES;
@@ -170,10 +165,23 @@ LINES: for(my $i=0; $i<scalar(@VCF_positions); $i++) {
 	my $previous_VCF_line = vcflines::read_VCF_lines($previous_VCF_entry);
 	my $previous_position = $$previous_VCF_line{'position'};
 	my $previous_id = $$previous_VCF_line{'id'};
+	my $previous_format = $$previous_VCF_line{'format'};
+	my $previous_genotype = $$previous_VCF_line{'GT0'}; 
 	my $previous_phase_summary = vcfphase::VCF_phased_id_read_numbers_to_summary($previous_id);
+	if($opt_z eq 'y') {
+		warn "previous phase summary:\n";
+		warn Dumper($previous_phase_summary);
+		warn "current phase summary:\n";
+		warn Dumper($phase_summary);
+	}
 
 	# Read overlap between 2 positions (PG1->PG2)
 	my ($phase_match, $phase_matches) = vcfphase::VCF_phase_summaries_to_match($previous_phase_summary, $phase_summary);
+	if($opt_z eq 'y') {
+		warn "phase match:\n";
+		warn Dumper($phase_match);
+		warn "phase matches: $phase_matches\n";
+	}
 
 	# Some consecutive hets don't have any reads overlapping - they might not be close enough
 	# Also are both alleles predominantly hitting two separate alleles (e.g. some positions have a mix of reads linking ref to ref and ref to consensus - which in turn lead to a het call... but bad evidence of phase)
@@ -184,36 +192,37 @@ LINES: for(my $i=0; $i<scalar(@VCF_positions); $i++) {
 		}
 
 		# Remove read numbers from previous line (unless it's been phased)
-		if($$previous_VCF_line{'format'} !~ m/PID/) {
+		if($previous_format !~ m/PID/) {
 			$previous_VCF_entry = &VCF_update_phase($previous_VCF_entry, 'remove_read_numbers', 'n/a', $sample_number, 'n/a', $opt_z);
 			$$VCF_position_to_line{$previous_position} = $previous_VCF_entry;
 		}
 
 		# reset and new phase group
 		$previous_VCF_entry = $line;
-		$phase_switch_genotype = 0;
 		$phase_block++; 
 		next LINES;
 	}
 
-	# Create new genotypes (still might need reordering based on previous switching
-	my $updated_previous_GT;
+	# Phaseable
+	if($opt_z eq 'y') { warn "PHASEABLE!\n"; }
+
+	# Create new genotypes
 	my $updated_GT;
 	my $switch_gt_flag = 0;
-	foreach my $PG1(keys %{$phase_match}) {
+	my $updated_previous_GT = $previous_genotype;
+	$updated_previous_GT =~ s/\//\|/g;
+	my @prev_GT_parts = split /[\|\/]/, $previous_genotype;
+	foreach my $PG1(@prev_GT_parts) {
+		die "Error: could not find match to $PG1 from $previous_genotype\nprevious line = $previous_VCF_entry\nline = $line\n" if(!defined $$phase_match{$PG1});
 		my $PG2 = $$phase_match{$PG1};
-		$updated_previous_GT .= "$PG1|";
 		$updated_GT .= "$PG2|";
 
 		# Switch genotype?
 		if($PG1 ne $PG2) { $switch_gt_flag = 1; }
 	}
-	$updated_previous_GT =~ s/\|$//;
 	$updated_GT =~ s/\|$//;
-	#warn "new) $updated_previous_GT and $updated_GT\n";
 
-	# Phaseable
-	if($opt_z eq 'y') { warn "PHASEABLE!\n"; }
+	if($opt_z eq 'y') { warn "Previous GT should be $updated_previous_GT\nCurrent GT should be $updated_GT\n"; }
 
 	# Update id, format and sample info with phase group for previous line
 	$previous_VCF_entry = &VCF_update_phase($previous_VCF_entry, 'remove_read_numbers', 'n/a', $sample_number, 'n/a', $opt_z);
@@ -221,29 +230,9 @@ LINES: for(my $i=0; $i<scalar(@VCF_positions); $i++) {
 	if($$previous_VCF_line{'format'} !~ m/PID/) {
 		if($opt_z eq 'y') { warn "Phase previous line\n"; }
 
-		# Switch GT?
-		if(($phase_switch_genotype % 2) ne 0) {
-			if($updated_previous_GT =~ m/(\d)[\/|\|](\d)/) {
-				$updated_previous_GT = ($2 . '|' . $1);
-			}
-			if($opt_z eq 'y') { warn "Switch GT = $updated_previous_GT\n"; }
-		}
-
 		# Phase
 		$previous_VCF_entry = &VCF_update_phase($previous_VCF_entry, 'phase', ":$contig-$sample_number-$start_window-$phase_block", $sample_number, $updated_previous_GT, $opt_z);
 		$$VCF_position_to_line{$previous_position} = $previous_VCF_entry;	
-	}
-
-	# Phase switch genotypes for current line
-	if($switch_gt_flag eq 1) { $phase_switch_genotype++; }
-
-	# Update current line to include phase group (but leave read numbers in for phasing to new lines after)
-	# if even don't switch, if odd do switch
-	if(($phase_switch_genotype % 2) ne 0) {
-		if($updated_GT =~ m/(\d)[\/|\|](\d)/) {
-			$updated_GT = ($2 . '|' . $1);
-		}
-		if($opt_z eq 'y') { warn "Switch GT = $updated_GT\n"; }
 	}
 
 	# Phase
@@ -295,7 +284,10 @@ sub VCF_update_phase {
 	my $VCF_line = vcflines::read_VCF_lines($line);
 
 	# Remove read numbers
-	if($task eq 'remove_read_numbers') { $$VCF_line{'id'} = ''; }
+	if($task eq 'remove_read_numbers') { 
+		if($verbose eq 'y') { warn "VCF_update_phase: remove_read_numbers\n"; }
+		$$VCF_line{'id'} = ''; 
+	}
 
 	# Info = insufficient_read_depth
 	if($task eq 'insufficient_read_depth') { $$VCF_line{'id'} = 'phase_info=sample' . $sample_number . '-haplotype_DP_below_cutoff;'; }

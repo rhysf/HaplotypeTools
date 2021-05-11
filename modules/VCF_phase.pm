@@ -423,27 +423,27 @@ sub save_two_bases {
 	my $base_type_id = ('base_type' . $sample_number);
 	die "save_two_bases: Unable to find sample number $sample_number from VCF line. Check VCF\n" if(!defined $$VCF_line{$base_type_id});
 	my $base_type = $$VCF_line{$base_type_id};
+	#my $GT_ID = ('GT' . $sample_number)
+	my $base1_ID = ($sample_number . 'base1');
+	my $base2_ID = ($sample_number . 'base2');
+	die "Error: save_two_bases on $$VCF_line{$base1_ID} or $$VCF_line{$base2_ID} not defined" if((!defined $$VCF_line{$base1_ID}) || (!defined $$VCF_line{$base2_ID}));
+	my $base1 = $$VCF_line{$base1_ID};
+	my $base2 = $$VCF_line{$base2_ID};
 
 	# Save bases
-   	if($base_type eq 'reference') {
-		$polymorphism1 = $$VCF_line{'reference_VCF_format'};
-		$polymorphism2 = $$VCF_line{'reference_VCF_format'};
-	}
-	elsif($base_type eq 'snp') {
-		$polymorphism1 = $$VCF_line{'consensus_VCF_format'};
-		$polymorphism2 = $$VCF_line{'consensus_VCF_format'};
+   	if($base_type =~ m/^reference$|^snp$/) {
+		$polymorphism1 = $base1;
+		$polymorphism2 = $base1;
 	}
 	elsif($base_type =~ m/heterozygous|het_deletion|het_insertion|insertion|deletion/) {
-		my $base1_id = ($sample_number . 'base1');
-		my $base2_id = ($sample_number . 'base2');
-		$polymorphism1 = $$VCF_line{$base1_id};
-		$polymorphism2 = $$VCF_line{$base2_id};
+		$polymorphism1 = $base1;
+		$polymorphism2 = $base2;
 	} 
 	else { 
 		print Dumper($VCF_line);
 		die "save_two_bases: What is this line. Did not expect $base_type\n"; 
 	}
-	if((!defined $polymorphism1) || (!defined $polymorphism2)) { die "Something strange over $$VCF_line{'base_type0'}\n"; }
+	if((!defined $polymorphism1) || (!defined $polymorphism2)) { die "Error: save_two_bases: Unrecognised $base_type\n"; }
 	return ($polymorphism1, $polymorphism2);
 }
 

@@ -198,7 +198,7 @@ LINES: for(my $i=0; $i<scalar(@VCF_positions); $i++) {
 		}
 
 		# reset and new phase group
-		$previous_VCF_entry = $line;
+		undef $previous_VCF_entry;
 		$phase_block++; 
 		next LINES;
 	}
@@ -213,7 +213,15 @@ LINES: for(my $i=0; $i<scalar(@VCF_positions); $i++) {
 	$updated_previous_GT =~ s/\//\|/g;
 	my @prev_GT_parts = split /[\|\/]/, $previous_genotype;
 	foreach my $PG1(@prev_GT_parts) {
-		die "Error: could not find match to $PG1 from $previous_genotype\nprevious line = $previous_VCF_entry\nline = $line\n" if(!defined $$phase_match{$PG1});
+		# Something odd:
+		if(!defined $$phase_match{$PG1}) {
+			warn "Warning: Could not find match to $PG1 from $previous_genotype\nprevious line = $previous_VCF_entry\nline = $line\n";
+			# reset and new phase group
+			undef $previous_VCF_entry;
+			$phase_block++;
+			next LINES;
+		}
+
 		my $PG2 = $$phase_match{$PG1};
 		$updated_GT .= "$PG2|";
 

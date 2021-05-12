@@ -61,6 +61,7 @@ LINES: for(my $i=0; $i<scalar(@VCF_positions); $i++) {
 	my $line = $$VCF_position_to_line{$position};
 	if($opt_z eq 'y') { warn "\n\n$position) $line\n"; }
 	my $VCF_line = vcflines::read_VCF_lines($line);
+	my $supercontig = $$VCF_line{'supercontig'};
 	my $number_of_samples = $$VCF_line{'number_of_samples'};
 	my $phase_summary = vcfphase::VCF_phased_id_read_numbers_to_summary($$VCF_line{'id'});
 
@@ -239,12 +240,12 @@ LINES: for(my $i=0; $i<scalar(@VCF_positions); $i++) {
 		if($opt_z eq 'y') { warn "Phase previous line\n"; }
 
 		# Phase
-		$previous_VCF_entry = &VCF_update_phase($previous_VCF_entry, 'phase', ":$contig-$sample_number-$start_window-$phase_block", $sample_number, $updated_previous_GT, $opt_z);
+		$previous_VCF_entry = &VCF_update_phase($previous_VCF_entry, 'phase', ":$supercontig-$sample_number-$start_window-$phase_block", $sample_number, $updated_previous_GT, $opt_z);
 		$$VCF_position_to_line{$previous_position} = $previous_VCF_entry;	
 	}
 
 	# Phase
-	$line = &VCF_update_phase($line, 'phase', ":$contig-$sample_number-$start_window-$phase_block", $sample_number, $updated_GT, $opt_z);
+	$line = &VCF_update_phase($line, 'phase', ":$supercontig-$sample_number-$start_window-$phase_block", $sample_number, $updated_GT, $opt_z);
 	if($opt_z eq 'y') { warn "save $position -> $line\n"; }
 	$$VCF_position_to_line{$position} = $line;
 

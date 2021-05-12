@@ -254,6 +254,7 @@ Parameters: -v <VCF's (separated by comma)>
 Optional:   -c Length cut-off for minimum haplotype to be considered [10]
             -p Phased in any (1), Phased in all (2) [1]
             -s Sample names to restrict analysis too (separated by comma)
+            -t Phase Tag (HaplotypeTools uses PID, Whatshap uses PS or HP etc) [PID]
 Output:     -u Summary [opt-v-PIA-p-Opt_p-c-Opt_c-s-Opt_s.summary]
             -o Output [opt-v-PIA-p-Opt_p-c-Opt_c-s-Opt_s.tab]
 

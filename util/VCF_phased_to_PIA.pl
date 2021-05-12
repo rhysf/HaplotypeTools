@@ -14,15 +14,17 @@ use Data::Dumper;
 my $usage = "Usage: perl $0 -v <VCF's (separated by comma)> -f <reference FASTA>\n
 Optional: -c\tLength cut-off for minimum haplotype to be considered [10]
           -p\tPhased in any (1), Phased in all (2) [1]
-          -s\tSample names to restrict analysis too (separated by comma) [all]\n
+          -s\tSample names to restrict analysis too (separated by comma) [all]
+	  -t\tPhase Tag (HaplotypeTools uses PID, Whatshap uses PS or HP etc) [PID]\n
 Outputs:  -u\tSummary [opt-v-PIA-p-Opt_p-c-Opt_c-s-Opt_s.summary]
           -o\tOutput [opt-v-PIA-p-Opt_p-c-Opt_c-s-Opt_s.tab]\n";
-our($opt_c, $opt_f, $opt_o, $opt_p, $opt_s, $opt_u, $opt_v);
-getopt('cfopsuv');
+our($opt_c, $opt_f, $opt_o, $opt_p, $opt_s, $opt_t, $opt_u, $opt_v);
+getopt('cfopstuv');
 die $usage unless ($opt_v && $opt_f);
 if(!defined $opt_c) { $opt_c = 10; }
 if(!defined $opt_p) { $opt_p = 1; }
 if(!defined $opt_s) { $opt_s = 'all'; }
+if(!defined $opt_t) { $opt_t = 'PID'; }
 my @files = split /,/, $opt_v;
 foreach(@files) { die "file $_ not readable: $!\n" if(! -e $_); }
 if(scalar(@files) eq 1) {
@@ -43,6 +45,7 @@ if($opt_s ne 'all') {
 		$samples{$sample} = 1;
 	}
 } 
+warn "$0: Settings -v $opt_v -f $opt_f -c $opt_c -p $opt_p -s $opt_s -t $opt_t -u $opt_u -o $opt_o\n";
 
 # Phase group size and metrics etc.
 my (%phase_group_lengths, %covered_regions, %haplotype_regions);
@@ -105,7 +108,8 @@ foreach my $file(@files) {
 				next SAMPLE if(!defined $samples{$isolate_name});
 			}
 			my $sample_info_name = "sample_info$i";
-			my $phased_id = ('PID' . $i);
+			#my $phased_id = ('PID' . $i);
+			my $phased_id = ($opt_t . $i);
 
 			# Phased only
 			next SAMPLE if(!defined $$VCF_line{$phased_id}); 

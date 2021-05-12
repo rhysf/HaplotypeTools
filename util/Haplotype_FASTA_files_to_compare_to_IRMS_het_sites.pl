@@ -15,6 +15,7 @@ Optional:\n";
 our($opt_a, $opt_b, $opt_c, $opt_d);
 getopt('abcd');
 die $usage unless ($opt_a && $opt_b && $opt_c && $opt_d);
+warn "$0: Settings -a $opt_a -b $opt_b -c $opt_c -d $opt_d\n";
 
 # Save sequences
 my $fasta1 = fastafile::fasta_to_struct($opt_a);

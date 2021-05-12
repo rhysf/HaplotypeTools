@@ -11,11 +11,16 @@ use Data::Dumper;
 
 # Opening commands
 my $usage = "Usage: $0 -a <PIA_1 FASTA> -b <PIA_2 FASTA> -c <IRMS HET.fasta> -d <IRMS HET.details>\n
-Optional:\n";
-our($opt_a, $opt_b, $opt_c, $opt_d);
-getopt('abcd');
+Optional: -p\tprint to stdout (s) or (f) [s]
+          -o\tFile to print to if opt_p=f [opt_a-and-2.accuracy]
+	  -z\tVerbose for testing (y/n) [n]\n";
+our($opt_a, $opt_b, $opt_c, $opt_d, $opt_o, $opt_p, $opt_v);
+getopt('abcdopv');
 die $usage unless ($opt_a && $opt_b && $opt_c && $opt_d);
-warn "$0: Settings -a $opt_a -b $opt_b -c $opt_c -d $opt_d\n";
+if(!defined $opt_p) { $opt_p = 's'; }
+if(!defined $opt_o) { $opt_o = ($opt_a . '-and-2.accuracy'); }
+if(!defined $opt_v) { $opt_v = 'n'; }
+warn "$0: Settings -a $opt_a -b $opt_b -c $opt_c -d $opt_d -p $opt_p -o $opt_o\n";
 
 # Save sequences
 my $fasta1 = fastafile::fasta_to_struct($opt_a);
@@ -25,11 +30,18 @@ my $fasta3 = fastafile::fasta_to_struct($opt_c);
 # Save tab file
 my $irms_details = tabfile::save_columns_to_column_hash($opt_d, 0, 1, 2, 3);
 
+my $header = "id\tTP\tcorrect_position_not_match_truth_set\tcorrect_base_wrong_phase\tFP\n";
+my $ofh;
+if($opt_p eq 's') { print $header; }
+else {
+	open $ofh, '>', $opt_o or die "Cannot open $opt_o : $!\n";
+	print $ofh $header;
+}
+
 # For each pair or sequences, how closely do they match the contig and homologous contig (e.g. supercont1.1 or supercont1.1_homologous)
 my $count = 0;
-print "id\tTP\tcorrect_position_not_match_truth_set\tcorrect_base_wrong_phase\tFP\n";
 ID: foreach my $id(sort keys %{$$fasta1{'seq'}}) {
-	#warn "$id\n";
+	if($opt_v eq 'y') { warn "$id\n"; }
 	die "Nothing found for $id in $opt_b\n" if(!defined $$fasta2{'seq'}{$id});
 	my $seq1 = $$fasta1{'seq'}{$id};
 	my $seq2 = $$fasta2{'seq'}{$id};
@@ -54,29 +66,38 @@ ID: foreach my $id(sort keys %{$$fasta1{'seq'}}) {
 	my $seq3_haplotype = substr $seq3, $truth_set_start, ($end - $truth_set_start);
 	my $seq4_haplotype = substr $seq4, $truth_set_start, ($end - $truth_set_start);
 
-	#warn "contig = $contig\n";
-	#warn "start = $start\n";
-	#warn "end = $end\n";
-	#warn "seq 1 =\n$seq1\n";
-	#warn "seq 2 =\n$seq2\n";
-	#warn "truth set seq3 =\n$seq3_haplotype\n";
-	#warn "truth set seq4 =\n$seq4_haplotype\n";
+	# summary
+	if($opt_v eq 'y') { 
+		warn "contig = $contig\n";
+		warn "start = $start\n";
+		warn "end = $end\n";
+		warn "seq 1 =\n$seq1\n";
+		warn "seq 2 =\n$seq2\n";
+		warn "truth set seq3 =\n$seq3_haplotype\n";
+		warn "truth set seq4 =\n$seq4_haplotype\n";
+	}
 
 	# Pull IRMS details from those regions (pos -> nt -> introduced het)
 	my ($IRMS_positions, $num_mutations) = &save_number_mutations_in_region($irms_details, $contig, $truth_set_start, $end);
-	#print "irms positions\n";
-	#print Dumper($IRMS_positions);
-	#warn "num mutation = $num_mutations\n";
+	if($opt_v eq 'y') {
+		print "irms positions\n";
+		print Dumper($IRMS_positions);
+		warn "num mutation = $num_mutations\n";
+	}
 
 	my ($IRMS_positions_homologous, $num_mutations_homologous) = &save_number_mutations_in_region($irms_details, $contig_hom, $truth_set_start, $end);
-	#print "irms hom positions\n";
-	#print Dumper($IRMS_positions_homologous);
-	#warn "num mutation homolgous = $num_mutations_homologous\n";
+	if($opt_v eq 'y') {
+		print "irms hom positions\n";
+		print Dumper($IRMS_positions_homologous);
+		warn "num mutation homolgous = $num_mutations_homologous\n";
+	}
 	next ID if(($num_mutations + $num_mutations_homologous) eq 0);
 
 	my %IRMS_positions = (%{$IRMS_positions}, %{$IRMS_positions_homologous});
-	#print "\ncombined\n";
-	#print Dumper(%IRMS_positions);
+	if($opt_v eq 'y') {
+		print "\ncombined\n";
+		print Dumper(%IRMS_positions);
+	}
 
 	# Go through each position that has been changed
 	my $TP = 0;
@@ -86,50 +107,54 @@ ID: foreach my $id(sort keys %{$$fasta1{'seq'}}) {
 	foreach my $positions(sort { $a <=> $b } keys %IRMS_positions) {
 
 		# Pull out bases of all four haplotypes (2 real, 2 truth)
-		#warn "\nIRMS position = $positions\n";
 		my $hap_position = ($positions - $truth_set_start);
-		#warn "Hap position = $hap_position\n";
 		my $hap_base1 = substr $seq1, $hap_position, 1;
 		my $hap_base2 = substr $seq2, $hap_position, 1;
 		my $hap_base3 = substr $seq3_haplotype, $hap_position, 1;
 		my $hap_base4 = substr $seq4_haplotype, $hap_position, 1;
-		#warn "Hap bases = \n";
-		#warn "\t1 = $hap_base1\n"; 
-		#warn "\t2 = $hap_base2\n";
-		#warn "\t3 = $hap_base3\n"; 
-		#warn "\t4 = $hap_base4\n";
+
+		# details
+		if($opt_v eq 'y') {
+			warn "\nIRMS position = $positions\n";
+			warn "Hap position = $hap_position\n";
+			warn "Hap bases = \n";
+			warn "\t1 = $hap_base1\n"; 
+			warn "\t2 = $hap_base2\n";
+			warn "\t3 = $hap_base3\n"; 
+			warn "\t4 = $hap_base4\n";
+		}
 
 		# Compare
 
 		# TP / correct base
 		if(($hap_base1 eq $hap_base3) && ($hap_base2 eq $hap_base4)) { 
-			#warn "1 = 3, 2 = 4\n";
+			if($opt_v eq 'y') { warn "1 = 3, 2 = 4\n"; }
 			if(!defined $hap_match) {
 				$hap_match = 1;
 				$TP++;
 			} 
 			elsif($hap_match eq 1) { $TP++; } 
 			else { 
-				#warn "correct_base_wrong_haplotype\n";
+				if($opt_v eq 'y') { warn "correct_base_wrong_haplotype\n"; }
 				$correct_base_wrong_haplotype++; 
 			}
 		}
 		elsif(($hap_base1 eq $hap_base4) && ($hap_base2 eq $hap_base3)) { 
-			#warn "1 = 4, 2 = 3\n";
+			if($opt_v eq 'y') { warn "1 = 4, 2 = 3\n"; }
 			if(!defined $hap_match) {
 				$hap_match = 2;
 				$TP++;
 			}
 			elsif($hap_match eq 2) { $TP++; } 
 			else { 
-				#warn "correct_base_wrong_haplotype\n";
+				if($opt_v eq 'y') { warn "correct_base_wrong_haplotype\n"; }
 				$correct_base_wrong_haplotype++; 
 			}
 		}
 
 		# FP / incorrect base
 		else {
-			#warn "$hap_base1 ne $hap_base3 or $hap_base4 ?\n";
+			if($opt_v eq 'y') { warn "$hap_base1 ne $hap_base3 or $hap_base4 ?\n"; }
 			$correct_position_not_match_truth_set++;
 		}
 		#warn "TP = $TP, $FP = $FP, correct base wrong hap = $correct_base_wrong_haplotype\n";
@@ -173,7 +198,9 @@ ID: foreach my $id(sort keys %{$$fasta1{'seq'}}) {
 	my $FP = ($FP1 + $FP2);
 
 	# Summary
-	print "$id\t$TP\t$correct_position_not_match_truth_set\t$correct_base_wrong_haplotype\t$FP\n";
+	my $haplotype_accuracy_line = "$id\t$TP\t$correct_position_not_match_truth_set\t$correct_base_wrong_haplotype\t$FP\n";
+	if($opt_p eq 's') { print $haplotype_accuracy_line; }
+	else { print $ofh $haplotype_accuracy_line; }
 
 	$count++;
 }

@@ -202,6 +202,10 @@ Parameters: -a <PIA_1 FASTA>
             -b <PIA_2 FASTA> 
             -c <IRMS HET.fasta> 
             -d <IRMS HET.details>
+Optional:   -p print to stdout (s) or (f) [s]
+            -o File to print to if opt_p=f <opt_a-and-2.accuracy>
+            -z Verbose for testing (y/n) [n]
+
 
 VCF_and_FASTA_to_consensus_FASTA.pl 
 Parameters: -v <VCF> 
@@ -232,6 +236,7 @@ Optional:   -u Sample name in VCF to pull haplotypes from [WGS]
             -e Exclude printing if haplotypes are identical (y/n) [n]
 	    -m min length [10]
 	    -i Include indels (y/n) [n]
+	    -z Verbose for testing (y/n) [n]
 
 VCF_phased_append_name_to_phase_group.pl <VCF file 1> > outfile.vcf
 

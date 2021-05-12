@@ -503,19 +503,23 @@ sub VCF_phased_to_contig_pos_haps_to_variant {
 	# Find sample number
 	my ($sample_number, $sample_found) = vcflines::VCF_and_sample_name_to_sample_number($file, $sample_name);
 
+	my $count = 0;
 	open my $fh, '<', $file or die "Cannot open $file\n";
-	warn "Reading $file...\n";
+	warn "VCF_phased_to_contig_pos_haps_to_variant: Reading $file...\n";
 	VCF1: while (my $line = <$fh>) {
    		chomp $line;
 		my ($VCF_line) = vcflines::read_VCF_lines($line);
 		my $phased_id = ($sample_number . 'phased');
 		my $base_type_id = ('base_type' . $sample_number);
+		my $phase_set = ('PS' . $sample_number); # whatshap uses this
+		my $haplotype_id = ('HP' . $sample_number); # whatshap uses this
 		my $supercontig = $$VCF_line{'supercontig'};
 		my $position = $$VCF_line{'position'};
 
 		# Only save phased variants
 		next VCF1 if($$VCF_line{'next'} eq 1);
-		next VCF1 if(!defined $$VCF_line{$phased_id}); 
+		# PID0  or PS
+		next VCF1 if((!defined $$VCF_line{$phased_id}) && (!defined $$VCF_line{$phase_set}) && (!defined $$VCF_line{$haplotype_id})); 
 		next VCF1 if($$VCF_line{$base_type_id} eq 'ambiguous'); 
 		if($indels eq 'n') { next VCF1 if($$VCF_line{$base_type_id} =~ m/het_deletion|het_insertion|insertion|deletion/); }
 
@@ -523,8 +527,10 @@ sub VCF_phased_to_contig_pos_haps_to_variant {
 		my ($polymorphism1, $polymorphism2) = &save_two_bases($VCF_line, $sample_number);
 		$polymorphisms{$supercontig}{$position}{'hap1'} = $polymorphism1;
 		$polymorphisms{$supercontig}{$position}{'hap2'} = $polymorphism2;
+		$count++;
 	}
 	close $fh;
+	warn "VCF_phased_to_contig_pos_haps_to_variant: Saved $count positions from $file\n";
 	return \%polymorphisms;
 }
 

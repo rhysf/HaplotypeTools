@@ -16,15 +16,17 @@ Optional: -u\tIf Multi VCF, sample name in VCF to pull haplotypes from [WGS]
           -p\tPrinting option (o=outfile, s=split to opt_l_1 and _2) [s]
           -e\tExclude printing if haplotypes are identical (y/n) [n]
 	  -m\tmin length [10]
-	  -i\tInclude indels (y/n) [n]\n";
-our($opt_v, $opt_l, $opt_r, $opt_u, $opt_p, $opt_e, $opt_m, $opt_i);
-getopt('vlrupemi');
-die $usage unless (($opt_v) && ($opt_l) && (($opt_r)));
+	  -i\tInclude indels (y/n) [n]
+	  -z\tVerbose for testing (y/n) [n]\n";
+our($opt_e, $opt_l, $opt_u, $opt_p, $opt_m, $opt_i, $opt_r, $opt_v, $opt_z);
+getopt('elupmirvz');
+die $usage unless ($opt_v && $opt_l && $opt_r);
 if(!defined $opt_p) { $opt_p = 's'; }
 if(!defined $opt_e) { $opt_e = 'n'; }
 if(!defined $opt_u) { $opt_u = 'WGS'; }
 if(!defined $opt_m) { $opt_m = 10; }
 if(!defined $opt_i) { $opt_i = 'n'; }
+if(!defined $opt_z) { $opt_z = 'n'; }
 
 # Save reference FASTA
 my $sequences = fastafile::fasta_to_struct($opt_r);
@@ -48,22 +50,22 @@ if($opt_p ne 'o') {
 warn "Go through haplotypes...\n";
 my ($worked, $haps_seen, $haps_same) = (0, 0, 0);
 foreach my $supercontig(sort keys %{$haplotypes}) {
-	#warn "Haplotypes -> supercontig = $supercontig\n";
+	if($opt_z eq 'y') { warn "Haplotypes -> supercontig = $supercontig\n"; }
 	HAP: foreach my $start(sort keys %{$$haplotypes{$supercontig}}) {
 		my $stop = $$haplotypes{$supercontig}{$start};
-		#warn "$start -> $stop\n";
+		if($opt_z eq 'y') { warn "$start -> $stop\n"; }
 
 		# Save initial haplotype sequence from FASTA
-		#warn "\nRefs = $ref_seq ($group)\n";
    		my $ref_seq = substr $$sequences{'seq'}{$supercontig}, ($start - 1), (($stop - $start) + 1);
+		if($opt_z eq 'y') { warn "\nRef seq = $ref_seq\n"; }
    		my ($hap1, $hap2) = ($ref_seq, $ref_seq);
    		$haps_seen++;
 
 		# Run through all phased positions on this supercontig, and check if it falls within this haplotype
    		VARIANTPOS: foreach my $variant_pos(keys %{$$polymorphisms{$supercontig}}) {
-			#warn "Looking for $variant_pos in $supercontig $start - $stop\n";
+			if($opt_z eq 'y') { warn "Looking for $variant_pos in $supercontig $start - $stop...\n"; }
 			next VARIANTPOS unless(($variant_pos >= $start) && ($variant_pos <= $stop));
-			#warn "FOUND.\n";
+			if($opt_z eq 'y') { warn "Found  $variant_pos\n"; }
 
 			# Check the reference bases from both hapltoypes and reference FASTA are concordant
 			my $test_ref = substr $$sequences{'seq'}{$supercontig}, ($variant_pos - 1), 1;

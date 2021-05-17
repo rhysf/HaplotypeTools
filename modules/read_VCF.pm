@@ -82,7 +82,7 @@ sub read_VCF_lines {
 		die "Format and Sample Info do not match: $VCF_line\n" if(scalar(@format_parts) ne scalar(@sample_info_parts));
 
 		# Save genotype, depth etc.
-		my ($GT_id, $DP_id, $base_type_ID, $amb_char_ID, $pid) = ("GT$isolate_number", "DP$isolate_number", "base_type$isolate_number", "amb_char$isolate_number", "PID$isolate_number");
+		my ($GT_id, $DP_id, $base_type_ID, $amb_char_ID, $pid, $ps_id) = ("GT$isolate_number", "DP$isolate_number", "base_type$isolate_number", "amb_char$isolate_number", "PID$isolate_number", "PS$isolate_number");
 		for(my $f=0; $f<scalar(@format_parts); $f++) {
 			my $format_part = $format_parts[$f];
 			my $sample_part = $sample_info_parts[$f];

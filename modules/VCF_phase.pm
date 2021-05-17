@@ -466,24 +466,28 @@ sub VCF_phased_to_phase_group_contig_pos_to_bases {
 		my $base_type = $$VCF_line{$base_type_id};
 		my $base1_id = ($sample_number . 'base1');
 		my $base2_id = ($sample_number . 'base2');
+		my $phase_group_id = ($sample_number . 'phase_group'); 
+		my $phase_group = $$VCF_line{$phase_group_id};
 
 		# Check it's phased
 		next VCF1 if($$VCF_line{'next'} eq 1);
 		next VCF1 if(!defined $$VCF_line{$phased_id});
+		die "Error: VCF_phased_to_phase_group_contig_pos_to_bases: Phase group not found for $line ($sample_number)\n" if(!defined $$VCF_line{$phase_group_id});
 
 		# for phased homs
 		if($base_type eq 'reference') { $saved_data = "$reference|$reference"; }
-		if($base_type eq 'snp') { $saved_data = "$consensus|$consensus"; }
+		elsif($base_type eq 'snp') { $saved_data = "$consensus|$consensus"; }
 
-		# for phased hets
-		if($base_type eq 'heterozygous') { 
+		# for phased everything else
+		else {
+		#elsif($base_type eq 'heterozygous') { 
 			#print Dumper($VCF_line);
 			die "Error: base1 not saved by VCF_line $line\n" if(!defined $$VCF_line{$base1_id});
 			die "Error: base2 not saved by VCF_line: $line\n" if(!defined $$VCF_line{$base2_id});
 			$saved_data = ($$VCF_line{$base1_id} . '|' . $$VCF_line{$base2_id});
 		}
 
-		$phased_hets{$$VCF_line{'phase_group'}}{$contig}{$position} = $saved_data;
+		$phased_hets{$phase_group}{$contig}{$position} = $saved_data;
 		$count++;
 	}
 	close $fh;

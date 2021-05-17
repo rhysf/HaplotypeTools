@@ -472,6 +472,7 @@ sub VCF_phased_to_phase_group_contig_pos_to_bases {
 		# Check it's phased
 		next VCF1 if($$VCF_line{'next'} eq 1);
 		next VCF1 if(!defined $$VCF_line{$phased_id});
+		next VCF1 if(($base1_id eq 'N') || ($base2_id eq 'N'));
 		die "Error: VCF_phased_to_phase_group_contig_pos_to_bases: Phase group not found for $line ($sample_number)\n" if(!defined $$VCF_line{$phase_group_id});
 
 		# for phased homs

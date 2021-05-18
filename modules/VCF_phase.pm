@@ -461,21 +461,28 @@ sub VCF_phased_to_phase_group_contig_pos_to_bases {
 		my $reference = $$VCF_line{'reference_VCF_format'};
 		my $consensus = $$VCF_line{'consensus_VCF_format'};
 		my $saved_data = '-';
+
 		my $phased_id = ($sample_number . 'phased');
 		my $base_type_id = ('base_type' . $sample_number);
-		my $base_type = $$VCF_line{$base_type_id};
 		my $base1_id = ($sample_number . 'base1');
 		my $base2_id = ($sample_number . 'base2');
 		my $phase_group_id = ($sample_number . 'phase_group'); 
+		my $GT_id = ('GT' . $sample_number);
+
+		my $base_type = $$VCF_line{$base_type_id};
 		my $base1 = $$VCF_line{$base1_id};
 		my $base2 = $$VCF_line{$base2_id};
+		my $GT = $$VCF_line{$GT_id};
 
-		# Check it's phased
+		# Check it's phased (has a PID tag)
 		next VCF1 if($$VCF_line{'next'} eq 1);
 		next VCF1 if(!defined $$VCF_line{$phased_id});
 		next VCF1 if(($base1 eq 'N') || ($base2 eq 'N'));
 		die "Error: VCF_phased_to_phase_group_contig_pos_to_bases: Phase group not found for $line ($sample_number)\n" if(!defined $$VCF_line{$phase_group_id});
 		my $phase_group = $$VCF_line{$phase_group_id};
+
+		# Check it is phased
+		next if($GT !~ m/\|/);
 
 		# for phased homs
 		if($base_type eq 'reference') { $saved_data = "$reference|$reference"; }

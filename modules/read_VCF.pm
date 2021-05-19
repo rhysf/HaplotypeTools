@@ -9,6 +9,7 @@ $VERSION = 0.1;
 @EXPORT_OK = qw();
 %EXPORT_TAGS = (DEFAULT => [qw()], ALL =>[qw()]);
 use Data::Dumper;
+use File::Basename;
 
 ### rfarrer@broadinstitute.org
 
@@ -182,6 +183,7 @@ sub VCF_split_for_phasing {
 
 	# Save VCF
 	warn "VCF_split_for_phasing: $file...\n";
+	my $file_no_dir = fileparse($file);
 	my (%VCF_header, %isolate_names);
 	my $ofh;
 	my $contig;
@@ -208,14 +210,11 @@ sub VCF_split_for_phasing {
 		my ($GT, $base_type) = ("GT$sample_number", "base_type$sample_number");
 		die "VCF_split_for_phasing: Cannot find genotype: $line" if(!defined $$VCF_line{$GT});
 
-		# Ignore indels (for now)
-		#next VCF1 if($$VCF_line{$base_type} =~ m/insertion|deletion/);
-
 		# Init outfile
 		if(!defined $ofh) {
 			$contig = $$VCF_line{'supercontig'};
 			warn "\tProcessing $contig...\n";
-			my $outfile = "$outfolder/$file-$contig-$start_window-$stop_window";
+			my $outfile = "$outfolder/$file_no_dir-$contig-$start_window-$stop_window";
 			open $ofh, '>', $outfile or die "Cannot open $outfile : $!\n";
 		}
 		if($$VCF_line{'supercontig'} ne $contig) {
@@ -223,7 +222,7 @@ sub VCF_split_for_phasing {
 			$contig = $$VCF_line{'supercontig'};
 			($start_window, $stop_window) = (0, $haplotype_length);
 			warn "\tProcessing $contig...\n";
-			my $outfile = "$outfolder/$file-$contig-$start_window-$stop_window";
+			my $outfile = "$outfolder/$file_no_dir-$contig-$start_window-$stop_window";
 			open $ofh, '>', $outfile or die "Cannot open $outfile : $!\n";
 		}
 
@@ -232,7 +231,7 @@ sub VCF_split_for_phasing {
 			close $ofh;
 			$start_window += $haplotype_length;
 			$stop_window += $haplotype_length; 
-			my $outfile = "$outfolder/$file-$contig-$start_window-$stop_window";
+			my $outfile = "$outfolder/$file_no_dir-$contig-$start_window-$stop_window";
 			open $ofh, '>', $outfile or die "Cannot open $outfile : $!\n";
 		}
 

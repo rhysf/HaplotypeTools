@@ -260,7 +260,7 @@ sub VCF_split_for_phasing {
 
 	# Print header
 	warn "VCF_split_for_phasing: Printing header...\n";
-	my $header_output = "$outfolder/$file-header";
+	my $header_output = "$outfolder/$file_no_dir-header";
 	open my $ofh2, '>', $header_output or die "Cannot open $header_output";
 	if(defined $VCF_header{'##fileformat'}) { print $ofh2 "$VCF_header{'##fileformat'}"; }
 	foreach my $header_part(keys %VCF_header) {
@@ -574,7 +574,7 @@ sub VCF_struct_determine_bases_and_base_type {
 	# Determine base type
 
 	# ambiguous
-	if(($base1 eq 'N') || ($base2 eq 'N') || ($GT eq '.')) { $base_type = 'ambiguous';
+	if(($base1 eq 'N') || ($GT eq '.')) { $base_type = 'ambiguous';
 		return ($base1, $base2, $base_type);
 	}
 

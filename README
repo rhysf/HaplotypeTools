@@ -163,7 +163,7 @@ Parameters: -v <VCF>
 	    -u VCF sample names in order of input BAM files (separated by comma if phasing multiple samples)
 Optional:   -c Cut-off percent reads supporting phase group [90]
             -m Minimum read depth overlapping two heterozygous SNPs [4]
-	    -r Max phase length (longer=slower) [10000]
+	    -r Max phase length [10000]
 	    -s Steps (1=process VCF, 2=process BAM, 3=assign read info to VCF, 4=validate and assign phase groups, 5=concatenate) [12345]
 Parallel:   -g Run commands on the grid (y/n) [n]
             -a Platform (UGER, LSF, GridEngine) [UGER]

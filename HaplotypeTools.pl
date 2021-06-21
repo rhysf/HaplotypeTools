@@ -16,7 +16,7 @@ use VCF_phase;
 my $usage = "Usage: perl $0 -v <VCF> -b <sorted BAMs (separated by comma)> -u <VCF sample names in order of input BAM files (separated by comma)> -f <reference fasta>
 Optional: -c\tCut-off percent reads supporting phase group [90]
           -m\tMinimum read depth overlapping two heterozygous positions [4]
-	  -r\tMax phase length (longer=slower) [10000]
+	  -r\tMax phase length [10000]
 	  -s\tSteps (1=process VCF, 2=process BAM, 3=assign read info to VCF, 4=validate and assign phase groups, 5=concatenate) [12345]\n
 Parallel: -g\tRun commands on the grid (y/n) [n]
 	  -a\tPlatform (UGER, LSF, GridEngine) [UGER]

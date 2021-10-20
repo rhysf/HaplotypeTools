@@ -5,11 +5,13 @@ https://github.com/rhysf/HaplotypeTools
 HaplotypeTools is a set of tools that can phase DNAseq data into haplotypes
 for the purposes of identifying recombination (crossovers between samples),
 identifying parental isolates or clades, or various population genetic tests.
-The tools require BioPerl and Bio::DB::HTS modules installed via cpan or cpanm.
+The tools require BioPerl and Bio::DB::HTS modules (installed via cpan or cpanm.)
+Inputs are Samtools indexed BAM, VCF, and reference FASTA.
 
 Prerequisites:
 --------------
 
+R (plyr, RColorBrewer)
 Perl
 BioPerl
 Bio::DB::HTC
@@ -117,8 +119,47 @@ perl util/VCF_phased_compare_to_VCF_phased.pl \
 	-d <sample ID 2 from VCF>
 	-o sample1_vs_sample2
 
-Description
------------
+Example pipeline using test data (chr1 Bd) to phase individual sample and plot haploytpe windows
+------------------------------------------------------------------------------------------------
+
+cd HaplotypeTools/example
+perl ../HaplotypeTools.pl \
+	-v Hybrid-SA.vcf-chr1.vcf \
+	-b Hybrid-SA.vcf-chr1.bam \
+	-u Hybrid-SA-EC3 \
+	-f Hybrid-SA.vcf-chr1.fasta
+
+[note] if you can submit jobs to a cluster, use options -g, -a and -q to speed this step up.
+
+perl ../util/VCF_phased_to_PIA.pl \
+	-v Hybrid-SA.vcf-chr1.vcf-Phased-m-4-c-90-r-10000.vcf \
+	-f Hybrid-SA.vcf-chr1.fasta
+
+perl ../util/VCF_phased_and_PIA_to_FASTA.pl \
+	-v Hybrid-SA.vcf-chr1.vcf-Phased-m-4-c-90-r-10000.vcf \
+	-l Hybrid-SA.vcf-chr1.vcf-Phased-m-4-c-90-r-10000.vcf-PIA-p-1-c-10-s-all.tab \
+	-r Hybrid-SA.vcf-chr1.fasta
+
+perl ../util/FASTA_compare_sequences.pl \
+	-f Hybrid-SA.vcf-chr1.vcf-Phased-m-4-c-90-r-10000.vcf-PIA-p-1-c-10-s-all.tab_1.fasta \
+	-a Hybrid-SA.vcf-chr1.vcf-Phased-m-4-c-90-r-10000.vcf-PIA-p-1-c-10-s-all.tab_2.fasta \
+	-o a > summary
+
+perl ../util/Haplotype_placer.pl \
+	-p Hybrid-SA.vcf-chr1.vcf-Phased-m-4-c-90-r-10000.vcf-PIA-p-1-c-10-s-all.tab \
+	-a Hybrid-SA.vcf-chr1.vcf-Phased-m-4-c-90-r-10000.vcf-PIA-p-1-c-10-s-all.tab_1.fasta \
+	-b Hybrid-SA.vcf-chr1.vcf-Phased-m-4-c-90-r-10000.vcf-PIA-p-1-c-10-s-all.tab_2.fasta \
+	-n Name_Type_Location_consensus_genomes.tab \
+	-d y \
+	-l Hybrid-SA.vcf-chr1.fasta
+
+perl util/Windows_haplotypes_to_R_figure.pl \
+	-w HaplotypeTools_windows -s 7000
+
+[note] This should produce windows_plot-for-Haplotypes.R.pdf. For reference, an example copy is saved as Example-windows_plot-for-Haplotypes.R.pdf
+
+HaplotypeTools Description
+--------------------------
 
 HaplotypeTools is a set of scripts designed to phase aligned WGS data, whereby
 haplotypes are constructed from sufficient numbers of reads overlapping two or

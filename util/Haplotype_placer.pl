@@ -19,7 +19,6 @@ Optional: -f Folder for output FASTA and Trees [HaplotypeTools_output]
           -c Clades/Lineages/Metadata to cluster isolates by. Format (Name tab Clades/Lineages/Metadata) []
           -t Location of FastTree [/seq/annotation/bio_tools/FastTree/current/FastTreeMP]
           -m Mimimum length of haplotypes [100]
-          -i Isolate name for windows [name]
           -v Verbose (y/n) [n]\n
 Windows:  -d Calculate windows (y/n) [n]
           -l Reference FASTA []
@@ -260,10 +259,10 @@ print $ofh3 "Contig\tWindow_Start\tWindow_Stop\tRunning_Position\tHap1\tHap2\n";
 
 my $running_window_length;
 foreach my $contigs(@{$$sequences{'order'}}) {
-	STARTS: foreach my $starts(sort {$a <=> $b} keys %{$$windows{'name'}{$contigs}}) {
-		STOPS: foreach my $stops(sort {$a <=> $b} keys %{$$windows{'name'}{$contigs}{$starts}}) {
-			my $Hap1 = $$windows{'name'}{$contigs}{$starts}{$stops}{'Hap1'};
-			my $Hap2 = $$windows{'name'}{$contigs}{$starts}{$stops}{'Hap2'};
+	STARTS: foreach my $starts(sort {$a <=> $b} keys %{$$windows{$opt_i}{$contigs}}) {
+		STOPS: foreach my $stops(sort {$a <=> $b} keys %{$$windows{$opt_i}{$contigs}{$starts}}) {
+			my $Hap1 = $$windows{$opt_i}{$contigs}{$starts}{$stops}{'Hap1'};
+			my $Hap2 = $$windows{$opt_i}{$contigs}{$starts}{$stops}{'Hap2'};
 
 			$running_window_length += ($stops - $starts);
 			print $ofh3 "$contigs\t$starts\t$stops\t$running_window_length\t$Hap1\t$Hap2\n";

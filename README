@@ -14,7 +14,7 @@ Prerequisites:
 R (plyr, RColorBrewer)
 Perl
 BioPerl
-Bio::DB::HTC
+Bio::DB::HTS
 Hash::Merge
 Samtools v0.1.10 or higher (samtools.sourceforge.net)
 FastTree (http://www.microbesonline.org/fasttree/)

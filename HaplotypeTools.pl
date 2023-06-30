@@ -16,14 +16,14 @@ use VCF_phase;
 my $usage = "Usage: perl $0 -v <VCF> -b <sorted BAMs (separated by comma)> -u <VCF sample names in order of input BAM files (separated by comma)> -f <reference fasta>
 Optional: -c\tCut-off percent reads supporting phase group [90]
           -m\tMinimum read depth overlapping two heterozygous positions [4]
-	  -r\tMax phase length [10000]
-	  -s\tSteps (1=process VCF, 2=process BAM, 3=assign read info to VCF, 4=validate and assign phase groups, 5=concatenate) [12345]\n
+          -r\tMax phase length [10000]
+          -s\tSteps (1=process VCF, 2=process BAM, 3=assign read info to VCF, 4=validate and assign phase groups, 5=concatenate) [12345]\n
 Parallel: -g\tRun commands on the grid (y/n) [n]
-	  -a\tPlatform (UGER, LSF, GridEngine) [UGER]
-	  -q\tQueue name [short]\n
+          -a\tPlatform (UGER, LSF, GridEngine) [UGER]
+          -q\tQueue name [short]\n
 Outputs:  -o\tOutput folder for tmp files [opt_v-HaplotypeTools-phased-r-opt_r]
           -p\tPhased VCF [opt_v-Phased-m-opt_m-c-opt_c-r-opt_r.vcf]
-	  -y\tPhased summary [opt_v-Phased-m-opt_m-c-opt_c-r-opt_r-summary.tab]\n";
+          -y\tPhased summary [opt_v-Phased-m-opt_m-c-opt_c-r-opt_r-summary.tab]\n";
 our($opt_a, $opt_b, $opt_c, $opt_f, $opt_g, $opt_m, $opt_o, $opt_p, $opt_q, $opt_r, $opt_s, $opt_u, $opt_v, $opt_y);
 getopt('abcfgmopqrsuvy');
 die $usage unless ($opt_v && $opt_b && $opt_u && $opt_f);

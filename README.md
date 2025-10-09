@@ -1,5 +1,6 @@
 
-<img src="https://github.com/rhysf/HaplotypeTools/blob/master/resources/logo.png?raw=true" width="400" height="400" />
+<img src="https://github.com/rhysf/HaplotypeTools/blob/main/resources/logo.png?raw=true" width="400" height="400" />
+
 
 ## Introduction
 

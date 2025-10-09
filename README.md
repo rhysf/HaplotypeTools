@@ -1,165 +1,7 @@
-All documentation for HaplotypeTools can be found at:
 
-https://github.com/rhysf/HaplotypeTools
+<img src="https://github.com/rhysf/Synima/blob/master/resources/logo2.png?raw=true" width="400" height="400" />
 
-HaplotypeTools is a set of tools that can phase DNAseq data into haplotypes
-for the purposes of identifying recombination (crossovers between samples),
-identifying parental isolates or clades, or various population genetic tests.
-The tools require BioPerl and Bio::DB::HTS modules (installed via cpan or cpanm.)
-Inputs are Samtools indexed BAM, VCF, and reference FASTA.
-
-Prerequisites:
---------------
-
-R (plyr, RColorBrewer)
-Perl
-BioPerl
-Bio::DB::HTS
-Hash::Merge
-Samtools v0.1.10 or higher (samtools.sourceforge.net)
-FastTree (http://www.microbesonline.org/fasttree/)
-
-Getting started / example pipeline for phasing individual sample
-----------------------------------------------------------------
-
-git clone git@github.com:rhysf/HaplotypeTools.git
-cd HaplotypeTools/
-perl HaplotypeTools.pl -v <vcf> -b <sorted BAM> -u <VCF sample name> -f <reference.fasta>
-perl util/VCF_phased_to_PIA.pl \
-	-v <vcf-Phased-m-4-c-90-r-10000.vcf> \
-	-f <reference.fasta>
-perl util/VCF_phased_and_PIA_to_FASTA.pl \
-	-v <vcf-Phased-m-4-c-90-r-10000.vcf> \
-	-l <vcf-Phased-m-4-c-90-r-10000.vcf-PIA-p-1-c-10-s-all.tab> \
-	-r <reference.fasta>
-perl util/FASTA_compare_sequences.pl \
-	-f <vcf-Phased-m-4-c-90-r-10000.vcf-PIA-p-1-c-10-s-all.tab_1.fasta> \
-	-a <vcf-Phased-m-4-c-90-r-10000.vcf-PIA-p-1-c-10-s-all.tab_2.fasta> \ 
-	-o a > summary
-
-Example pipeline for phasing multi sample VCF
----------------------------------------------
-
-perl HaplotypeTools.pl -v <multi sample vcf> \
-	-b <sorted BAMs (separated by comma)> \
-	-u <VCF sample names in order of input BAM files (separated by comma)> \
-	-f <reference.fasta>
-perl util/VCF_phased_to_PIA.pl \
-	-v <vcf-Phased-m-4-c-90-r-10000.vcf> \
-	-f <reference.fasta>
-	[if PIA is only for subset of samples] -s <VCF sample names to restrict analysis to>
-perl util/VCF_phased_and_PIA_to_FASTA.pl \
-	-v <vcf-Phased-m-4-c-90-r-10000.vcf> \
-	-l <vcf-Phased-m-4-c-90-r-10000.vcf-PIA-p-1-c-10-s-all.tab> \
-	-r <reference.fasta>
-	-u <sample name in VCF to pull haplotypes from>
-perl util/FASTA_compare_sequences.pl \
-	-f <vcf-Phased-m-4-c-90-r-10000.vcf-PIA-p-1-c-10-s-<opt_u>.tab_1.fasta> \
-	-a <vcf-Phased-m-4-c-90-r-10000.vcf-PIA-p-1-c-10-s-<opt_u>.tab_2.fasta> \ 
-	-o a > summary
-
-Example pipeline for comparing haplotypes to other genomes
-----------------------------------------------------------
-
-perl util/VCF_and_FASTA_to_consensus_FASTA.pl \
-	-v <sample1.vcf> \
-	-r <reference.fasta>
-
-Will make your consensus genomes. Next, we need to make a tabular file in the 
-following format (Name_Type_Location.tab) E.g.:
-
-Sample1	FASTA	/dir/with/your/consensus/FASTA/sample1.vcf-WGS-s-n-i-n-n-N-consensus.fasta
-Sample2	FASTA	/dir/with/your/consensus/FASTA/sample2.vcf-WGS-s-n-i-n-n-N-consensus.fasta
-Sample3	FASTA	/dir/with/your/consensus/FASTA/sample3.vcf-WGS-s-n-i-n-n-N-consensus.fasta
-...
-
-And an optional tabular file for clades/lineages E.g.:
-Sample1	clade1
-Sample2	clade1
-Sample3	clade2
-
-perl util/VCF_phased_to_PIA.pl \
-	-v <phased_sample1.vcf>,<phased_sample2.vcf>,<phased_sample3.vcf> \
-	-f <reference.fasta>
-perl util/VCF_phased_and_PIA_to_FASTA.pl \
-	-v <phased_sample1.vcf> \
-	-l <phased_sample1.vcf-plus_other_VCFs-PIA-p-1-c-10-s-all.tab> \
-	-r <reference.fasta> 
-perl util/Haplotype_placer.pl \
-	-p <phased_sample1-plus_other_VCFs-PIA-p-1-c-10-s-all.tab> \
-	-a <phased_sample1.vcf-plus_other_VCFs-PIA-p-1-c-10-s-all.tab_1.fasta> \
-	-b <phased_sample1.vcf-plus_other_VCFs-PIA-p-1-c-10-s-all.tab_2.fasta> \
-	-n <Name_Type_Location.tab>
-
-For window plots as well
-------------------------
-
-perl util/Haplotype_placer.pl \
-	-p <phased_sample1-plus_other_VCFs-PIA-p-1-c-10-s-all.tab> \
-	-a <phased_sample1.vcf-plus_other_VCFs-PIA-p-1-c-10-s-all.tab_1.fasta> \
-	-b <phased_sample1.vcf-plus_other_VCFs-PIA-p-1-c-10-s-all.tab_2.fasta> \
-	-n <Name_Type_Location.tab> \
-	-d y \
-	-l <reference.fasta>
-perl util/Windows_haplotypes_to_R_figure.pl -w HaplotypeTools_windows
-
-Example pipeline to identify crossovers
----------------------------------------
-
-perl util/VCF_phased_compare_to_VCF_phased.pl \
-	-a <phased_sample1.vcf> \
-	-b <phased_sample2.vcf> \
-	-o sample1_vs_sample2
-
-or
-
-perl util/VCF_phased_compare_to_VCF_phased.pl \
-	-a <phased.vcf> \
-	-c <sample ID 1 from VCF>
-	-d <sample ID 2 from VCF>
-	-o sample1_vs_sample2
-
-Example pipeline using test data (chr1 Bd) to phase individual sample and plot haploytpe windows
-------------------------------------------------------------------------------------------------
-
-cd HaplotypeTools/example
-perl ../HaplotypeTools.pl \
-	-v Hybrid-SA.vcf-chr1.vcf \
-	-b Hybrid-SA.vcf-chr1.bam \
-	-u Hybrid-SA-EC3 \
-	-f Hybrid-SA.vcf-chr1.fasta
-
-[note] if you can submit jobs to a cluster, use options -g, -a and -q to speed this step up.
-
-perl ../util/VCF_phased_to_PIA.pl \
-	-v Hybrid-SA.vcf-chr1.vcf-Phased-m-4-c-90-r-10000.vcf \
-	-f Hybrid-SA.vcf-chr1.fasta
-
-perl ../util/VCF_phased_and_PIA_to_FASTA.pl \
-	-v Hybrid-SA.vcf-chr1.vcf-Phased-m-4-c-90-r-10000.vcf \
-	-l Hybrid-SA.vcf-chr1.vcf-Phased-m-4-c-90-r-10000.vcf-PIA-p-1-c-10-s-all.tab \
-	-r Hybrid-SA.vcf-chr1.fasta
-
-perl ../util/FASTA_compare_sequences.pl \
-	-f Hybrid-SA.vcf-chr1.vcf-Phased-m-4-c-90-r-10000.vcf-PIA-p-1-c-10-s-all.tab_1.fasta \
-	-a Hybrid-SA.vcf-chr1.vcf-Phased-m-4-c-90-r-10000.vcf-PIA-p-1-c-10-s-all.tab_2.fasta \
-	-o a > summary
-
-perl ../util/Haplotype_placer.pl \
-	-p Hybrid-SA.vcf-chr1.vcf-Phased-m-4-c-90-r-10000.vcf-PIA-p-1-c-10-s-all.tab \
-	-a Hybrid-SA.vcf-chr1.vcf-Phased-m-4-c-90-r-10000.vcf-PIA-p-1-c-10-s-all.tab_1.fasta \
-	-b Hybrid-SA.vcf-chr1.vcf-Phased-m-4-c-90-r-10000.vcf-PIA-p-1-c-10-s-all.tab_2.fasta \
-	-n Name_Type_Location_consensus_genomes.tab \
-	-d y \
-	-l Hybrid-SA.vcf-chr1.fasta
-
-perl util/Windows_haplotypes_to_R_figure.pl \
-	-w HaplotypeTools_windows -s 7000
-
-[note] This should produce windows_plot-for-Haplotypes.R.pdf. For reference, an example copy is saved as Example-windows_plot-for-Haplotypes.R.pdf
-
-HaplotypeTools Description
---------------------------
+## Introduction
 
 HaplotypeTools is a set of scripts designed to phase aligned WGS data, whereby
 haplotypes are constructed from sufficient numbers of reads overlapping two or
@@ -191,12 +33,183 @@ includes both summaries and window files that can be plotted using the script XX
 VCF_phased_compare_to_VCF_phased.pl can be used to compare two phased VCFs and
 directly identify genomic regions that contain crossovers between them.
 
-Individual script details:
---------------------------
 
-HaplotypeTools parameters are shown below, followed by their default settings given in [].
-Files are highlighted in <>.
+## Documentation
 
+All documentation for HaplotypeTools can be found at https://github.com/rhysf/HaplotypeTools
+
+## Support
+
+For issues, questions, comments or feature requests, please check or post to the issues tab on github: https://github.com/rhysf/HaplotypeTools/issues
+
+## Prerequisites:
+
+* R (plyr, RColorBrewer)
+* Perl
+* BioPerl
+* Bio::DB::HTS
+* Hash::Merge
+* Samtools v0.1.10 or higher (samtools.sourceforge.net)
+* FastTree (http://www.microbesonline.org/fasttree/)
+
+## Getting started / example pipeline for phasing individual sample
+
+```bash
+git clone git@github.com:rhysf/HaplotypeTools.git
+cd HaplotypeTools/
+perl HaplotypeTools.pl -v <vcf> -b <sorted BAM> -u <VCF sample name> -f <reference.fasta>
+perl util/VCF_phased_to_PIA.pl \
+	-v <vcf-Phased-m-4-c-90-r-10000.vcf> \
+	-f <reference.fasta>
+perl util/VCF_phased_and_PIA_to_FASTA.pl \
+	-v <vcf-Phased-m-4-c-90-r-10000.vcf> \
+	-l <vcf-Phased-m-4-c-90-r-10000.vcf-PIA-p-1-c-10-s-all.tab> \
+	-r <reference.fasta>
+perl util/FASTA_compare_sequences.pl \
+	-f <vcf-Phased-m-4-c-90-r-10000.vcf-PIA-p-1-c-10-s-all.tab_1.fasta> \
+	-a <vcf-Phased-m-4-c-90-r-10000.vcf-PIA-p-1-c-10-s-all.tab_2.fasta> \ 
+	-o a > summary
+```
+
+## Example pipeline for phasing multi sample VCF
+
+```bash
+perl HaplotypeTools.pl -v <multi sample vcf> \
+	-b <sorted BAMs (separated by comma)> \
+	-u <VCF sample names in order of input BAM files (separated by comma)> \
+	-f <reference.fasta>
+perl util/VCF_phased_to_PIA.pl \
+	-v <vcf-Phased-m-4-c-90-r-10000.vcf> \
+	-f <reference.fasta>
+	[if PIA is only for subset of samples] -s <VCF sample names to restrict analysis to>
+perl util/VCF_phased_and_PIA_to_FASTA.pl \
+	-v <vcf-Phased-m-4-c-90-r-10000.vcf> \
+	-l <vcf-Phased-m-4-c-90-r-10000.vcf-PIA-p-1-c-10-s-all.tab> \
+	-r <reference.fasta>
+	-u <sample name in VCF to pull haplotypes from>
+perl util/FASTA_compare_sequences.pl \
+	-f <vcf-Phased-m-4-c-90-r-10000.vcf-PIA-p-1-c-10-s-<opt_u>.tab_1.fasta> \
+	-a <vcf-Phased-m-4-c-90-r-10000.vcf-PIA-p-1-c-10-s-<opt_u>.tab_2.fasta> \ 
+	-o a > summary
+```
+
+## Example pipeline for comparing haplotypes to other genomes
+
+```bash
+perl util/VCF_and_FASTA_to_consensus_FASTA.pl \
+	-v <sample1.vcf> \
+	-r <reference.fasta>
+```
+
+Will make your consensus genomes. Next, we need to make a tabular file in the 
+following format (Name_Type_Location.tab) E.g.:
+
+Sample1	FASTA	/dir/with/your/consensus/FASTA/sample1.vcf-WGS-s-n-i-n-n-N-consensus.fasta
+Sample2	FASTA	/dir/with/your/consensus/FASTA/sample2.vcf-WGS-s-n-i-n-n-N-consensus.fasta
+Sample3	FASTA	/dir/with/your/consensus/FASTA/sample3.vcf-WGS-s-n-i-n-n-N-consensus.fasta
+...
+
+And an optional tabular file for clades/lineages E.g.:
+Sample1	clade1
+Sample2	clade1
+Sample3	clade2
+
+```bash
+perl util/VCF_phased_to_PIA.pl \
+	-v <phased_sample1.vcf>,<phased_sample2.vcf>,<phased_sample3.vcf> \
+	-f <reference.fasta>
+perl util/VCF_phased_and_PIA_to_FASTA.pl \
+	-v <phased_sample1.vcf> \
+	-l <phased_sample1.vcf-plus_other_VCFs-PIA-p-1-c-10-s-all.tab> \
+	-r <reference.fasta> 
+perl util/Haplotype_placer.pl \
+	-p <phased_sample1-plus_other_VCFs-PIA-p-1-c-10-s-all.tab> \
+	-a <phased_sample1.vcf-plus_other_VCFs-PIA-p-1-c-10-s-all.tab_1.fasta> \
+	-b <phased_sample1.vcf-plus_other_VCFs-PIA-p-1-c-10-s-all.tab_2.fasta> \
+	-n <Name_Type_Location.tab>
+```
+
+## For window plots as well
+
+```bash
+perl util/Haplotype_placer.pl \
+	-p <phased_sample1-plus_other_VCFs-PIA-p-1-c-10-s-all.tab> \
+	-a <phased_sample1.vcf-plus_other_VCFs-PIA-p-1-c-10-s-all.tab_1.fasta> \
+	-b <phased_sample1.vcf-plus_other_VCFs-PIA-p-1-c-10-s-all.tab_2.fasta> \
+	-n <Name_Type_Location.tab> \
+	-d y \
+	-l <reference.fasta>
+perl util/Windows_haplotypes_to_R_figure.pl -w HaplotypeTools_windows
+```
+
+##Example pipeline to identify crossovers
+
+```bash
+perl util/VCF_phased_compare_to_VCF_phased.pl \
+	-a <phased_sample1.vcf> \
+	-b <phased_sample2.vcf> \
+	-o sample1_vs_sample2
+```
+
+or
+
+```bash
+perl util/VCF_phased_compare_to_VCF_phased.pl \
+	-a <phased.vcf> \
+	-c <sample ID 1 from VCF>
+	-d <sample ID 2 from VCF>
+	-o sample1_vs_sample2
+```
+
+## Example pipeline using test data (chr1 Bd) to phase individual sample and plot haploytpe windows
+
+```bash
+cd HaplotypeTools/example
+perl ../HaplotypeTools.pl \
+	-v Hybrid-SA.vcf-chr1.vcf \
+	-b Hybrid-SA.vcf-chr1.bam \
+	-u Hybrid-SA-EC3 \
+	-f Hybrid-SA.vcf-chr1.fasta
+```
+
+* [note] if you can submit jobs to a cluster, use options -g, -a and -q to speed this step up.
+
+```bash
+perl ../util/VCF_phased_to_PIA.pl \
+	-v Hybrid-SA.vcf-chr1.vcf-Phased-m-4-c-90-r-10000.vcf \
+	-f Hybrid-SA.vcf-chr1.fasta
+
+perl ../util/VCF_phased_and_PIA_to_FASTA.pl \
+	-v Hybrid-SA.vcf-chr1.vcf-Phased-m-4-c-90-r-10000.vcf \
+	-l Hybrid-SA.vcf-chr1.vcf-Phased-m-4-c-90-r-10000.vcf-PIA-p-1-c-10-s-all.tab \
+	-r Hybrid-SA.vcf-chr1.fasta
+
+perl ../util/FASTA_compare_sequences.pl \
+	-f Hybrid-SA.vcf-chr1.vcf-Phased-m-4-c-90-r-10000.vcf-PIA-p-1-c-10-s-all.tab_1.fasta \
+	-a Hybrid-SA.vcf-chr1.vcf-Phased-m-4-c-90-r-10000.vcf-PIA-p-1-c-10-s-all.tab_2.fasta \
+	-o a > summary
+
+perl ../util/Haplotype_placer.pl \
+	-p Hybrid-SA.vcf-chr1.vcf-Phased-m-4-c-90-r-10000.vcf-PIA-p-1-c-10-s-all.tab \
+	-a Hybrid-SA.vcf-chr1.vcf-Phased-m-4-c-90-r-10000.vcf-PIA-p-1-c-10-s-all.tab_1.fasta \
+	-b Hybrid-SA.vcf-chr1.vcf-Phased-m-4-c-90-r-10000.vcf-PIA-p-1-c-10-s-all.tab_2.fasta \
+	-n Name_Type_Location_consensus_genomes.tab \
+	-d y \
+	-l Hybrid-SA.vcf-chr1.fasta
+
+perl util/Windows_haplotypes_to_R_figure.pl \
+	-w HaplotypeTools_windows -s 7000
+```
+
+* [note] This should produce windows_plot-for-Haplotypes.R.pdf. For reference, an example copy is saved as Example-windows_plot-for-Haplotypes.R.pdf
+
+
+## Individual script details:
+
+* HaplotypeTools parameters are shown below, followed by their default settings given in [].
+* Files are highlighted in <>.
+
+```bash
 HaplotypeTools.pl 
 Parameters: -v <VCF> 
             -b <BAM (sorted) separated by comma if phasing multiple samples in a multi VCF> 
@@ -321,3 +334,4 @@ Optional    -s Scaling factor for width (nucleotides per mm) [20000]
             -g Optional size of axis text [2]
             -l Legend size [2]
             -x X-min [0]
+```

@@ -143,7 +143,7 @@ perl util/Haplotype_placer.pl \
 perl util/Windows_haplotypes_to_R_figure.pl -w HaplotypeTools_windows
 ```
 
-##Example pipeline to identify crossovers
+## Example pipeline to identify crossovers
 
 ```bash
 perl util/VCF_phased_compare_to_VCF_phased.pl \

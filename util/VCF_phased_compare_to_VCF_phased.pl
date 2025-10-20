@@ -25,7 +25,7 @@ my $of_refined = "$opt_a-$opt_o-Phase-Positions-Refined.tab";
 open my $ofh1, '>', $of_summary or die "Cannot open $of_summary: $!\n";
 open my $ofh2, '>', $of_overlaps or die "Cannot open $of_overlaps: $!\n";
 open my $ofh3, '>', $of_positions or die "Cannot open $of_positions: $!\n";
-open my $ofh4, '>', $of_refined or "Cannot open $of_refined: $!\n";
+open my $ofh4, '>', $of_refined or die "Cannot open $of_refined: $!\n";
 
 print $ofh2 "Overlapping_Phase_Group\tContig\tPosition\tVCF1\tVCF2\tIdentity\n";
 print $ofh3 "Overlapping_Phase_Group\tContig\tPosition\tVCF1\tVCF2\tIdentity\n";

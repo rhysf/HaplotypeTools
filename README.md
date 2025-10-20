@@ -58,14 +58,14 @@ For issues, questions, comments or feature requests, please check or post to the
 * 20 October 2025 
   - Fixed directionality issue where some crossovers were only identified in one direction.
   - Major code cleanup for readability and consistency (simplified `make_printable_lines` logic).
-  - Added refined crossover classification:
-        • Crossover_likely_gene_conversion — detected crossovers <1 kb apart.
-  	• Crossover_meiosis_candidate — isolated crossovers ≥1 kb apart with ≥3 phased sites on each side.
+  - Added refined crossover classification: Crossover_likely_gene_conversion = detected crossovers <1 kb apart. Crossover_meiosis_candidate = isolated crossovers ≥1 kb apart with ≥3 phased sites on each side.
   - Added refined summary output with counts and percentages of new crossover categories.
   - Introduced new R script for plotting crossover distance distributions, including log-scaled histograms and automatic PDF output.
   - General improvements to structure, logging, and output consistency.
-* 20 October 2021 - Example data included
-* 21 June 2021 - Stable release
+* 20 October 2021 
+  - Example data included
+* 21 June 2021 
+  - Stable release
 
 ## Getting started / example pipeline for phasing individual sample
 

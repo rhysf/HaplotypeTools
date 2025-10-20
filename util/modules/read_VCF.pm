@@ -279,7 +279,7 @@ sub parse_VCF {
 	my $phase_info;
 
 	# Sample number
-	my $sample_number = vcflines::VCF_and_sample_name_to_sample_number($vcf_file, $sample_name); 
+	my $sample_number = &VCF_and_sample_name_to_sample_number($vcf_file, $sample_name); 
 
 	# Go through the VCF 
 	open my $fh, '<', $vcf_file or die "Cannot open $vcf_file\n";

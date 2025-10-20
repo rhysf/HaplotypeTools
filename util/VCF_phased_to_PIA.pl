@@ -2,7 +2,7 @@
 use strict;
 use Getopt::Std;
 use FindBin qw($Bin);
-use lib "$Bin/../modules";
+use lib "$Bin/modules";
 use read_VCF;
 use read_FASTA;
 use genome_array;

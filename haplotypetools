@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+### r.farrer@exeter.ac.uk
+
+set -euo pipefail
+
+# Resolve repo root if this file is inside the repo; else assume installed
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CORE="${SCRIPT_DIR}/util/HaplotypeTools.pl"
+
+if [[ ! -x "$CORE" && ! -f "$CORE" ]]; then
+  echo "diamond2go: cannot find Diamond2go.pl at $CORE" >&2
+  exit 1
+fi
+
+exec perl "$CORE" "$@"

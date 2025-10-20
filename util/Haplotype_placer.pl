@@ -1,10 +1,10 @@
 #!/usr/bin/perl -w
 use strict;
-use lib "/home/unix/rfarrer/perl5/lib/perl5/";
+#use lib "/home/unix/rfarrer/perl5/lib/perl5/";
 use Bio::SeqIO;
 use Getopt::Std;
 use FindBin qw($Bin);
-use lib "$Bin/../modules";
+use lib "$Bin/modules";
 use read_Tab;
 use read_FASTA;
 use read_Tree;

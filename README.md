@@ -53,12 +53,18 @@ For issues, questions, comments or feature requests, please check or post to the
 * Samtools v0.1.10 or higher (samtools.sourceforge.net)
 * FastTree (http://www.microbesonline.org/fasttree/)
 
+## Updates:
+
+* 20 October 2025 - Fix directionality issue where some crossovers are being identified only in 1 direction but not the other. Also, some code tidy up.
+* 20 October 2021 - Example data included
+* 21 June 2021 - Stable release
+
 ## Getting started / example pipeline for phasing individual sample
 
 ```bash
 git clone git@github.com:rhysf/HaplotypeTools.git
 cd HaplotypeTools/
-perl HaplotypeTools.pl -v <vcf> -b <sorted BAM> -u <VCF sample name> -f <reference.fasta>
+./haplotypetools -v <vcf> -b <sorted BAM> -u <VCF sample name> -f <reference.fasta>
 perl util/VCF_phased_to_PIA.pl \
 	-v <vcf-Phased-m-4-c-90-r-10000.vcf> \
 	-f <reference.fasta>
@@ -75,7 +81,7 @@ perl util/FASTA_compare_sequences.pl \
 ## Example pipeline for phasing multi sample VCF
 
 ```bash
-perl HaplotypeTools.pl -v <multi sample vcf> \
+haplotypetools -v <multi sample vcf> \
 	-b <sorted BAMs (separated by comma)> \
 	-u <VCF sample names in order of input BAM files (separated by comma)> \
 	-f <reference.fasta>
@@ -166,7 +172,7 @@ perl util/VCF_phased_compare_to_VCF_phased.pl \
 
 ```bash
 cd HaplotypeTools/example
-perl ../HaplotypeTools.pl \
+../haplotypetools \
 	-v Hybrid-SA.vcf-chr1.vcf \
 	-b Hybrid-SA.vcf-chr1.bam \
 	-u Hybrid-SA-EC3 \

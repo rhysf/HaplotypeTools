@@ -4,7 +4,7 @@ use Cwd;
 my $dir = getcwd;
 use Getopt::Std;
 use FindBin qw($Bin);
-use lib "$Bin/../modules";
+use lib "$Bin/modules";
 use sliding_windows;
 
 ### rfarrer@broadinstitute.org

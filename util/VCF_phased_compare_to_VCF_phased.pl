@@ -2,10 +2,11 @@
 use strict;
 use Getopt::Std;
 use FindBin qw($Bin);
-use lib "$Bin/../modules";
+use lib "$Bin/modules";
+use read_VCF;
 use VCF_phase;
 
-### rfarrer@broadinstitute.org
+### r.farrer@exeter.ac.uk
 
 # Opening commands 
 my $usage = "Usage: perl $0 -a <VCF file 1> -b <VCF file 2> || -a <VCF file 1> -c <Sample ID 1> -d <Sample ID 2>\n
@@ -23,8 +24,8 @@ my $of_positions = ($opt_a . '-' . $opt_o . '-Phase-Positions.tab');
 open my $ofh1, '>', $of_summary or die "Cannot open $of_summary: $!\n";
 open my $ofh2, '>', $of_overlaps or die "Cannot open $of_overlaps: $!\n";
 open my $ofh3, '>', $of_positions or die "Cannot open $of_positions: $!\n";
-print $ofh2 "Overlapping Phase Group\tContig\tPosition\tVCF1\tVCF2\tIdentity\n";
-print $ofh3 "Overlapping Phase Group\tContig\tPosition\tVCF1\tVCF2\tIdentity\n";
+print $ofh2 "Overlapping_Phase_Group\tContig\tPosition\tVCF1\tVCF2\tIdentity\n";
+print $ofh3 "Overlapping_Phase_Group\tContig\tPosition\tVCF1\tVCF2\tIdentity\n";
 
 # Save phase groups from VCFs
 my ($phased_hets1, $phased_hets2);
@@ -43,6 +44,7 @@ else {
 }
 
 # Compare phase groups
+warn "Comparing phase groups...\n";
 my $found_in_both = 0;
 my ($total_overlap, $total_same, $total_cross) = (0,0,0);
 PHASEGROUP1: foreach my $phase_group1(sort keys %{$phased_hets1}) {
@@ -51,24 +53,52 @@ PHASEGROUP1: foreach my $phase_group1(sort keys %{$phased_hets1}) {
 		foreach my $contig(sort keys %{$$phased_hets1{$phase_group1}}) {
 			next PHASEGROUP2 if(!exists $$phased_hets2{$phase_group2}{$contig});
 
-			# Same contig in the 2 different phase groups
-			my $found = 0;
-			POSITIONS1: foreach my $positions(sort keys %{$$phased_hets1{$phase_group1}{$contig}}) {
-				next POSITIONS1 if(!exists $$phased_hets2{$phase_group2}{$contig}{$positions});
-				$found++;
+			# Collect shared positions
+			my @shared_positions = grep {
+				exists $$phased_hets2{$phase_group2}{$contig}{$_}
+			} keys %{$$phased_hets1{$phase_group1}{$contig}};
 
-				# Look for overlaps of at least 2
-				if($found eq 2) {
-					my ($lines, $cross_overs, $tally_overlap, $tally_same, $tally_cross) = &make_printable_lines($found_in_both, $contig, $$phased_hets1{$phase_group1}{$contig}, $$phased_hets2{$phase_group2}{$contig});
-					$total_overlap += $tally_overlap;
-					$total_same += $tally_same;
-					$total_cross += $tally_cross;
-					print $ofh2 "$lines";
-					print $ofh3 "$cross_overs";
-					$found_in_both++;
-					next PHASEGROUP1;
-				}
-			}
+			# Require at least two heterozygous overlaps to compare phase
+			next unless scalar(@shared_positions) >= 2;
+
+			# Call the crossover analysis for this shared block
+			my ($lines, $cross_overs, $tally_overlap, $tally_same, $tally_cross) =
+				make_printable_lines(
+				    $found_in_both,
+				    $contig,
+				    $$phased_hets1{$phase_group1}{$contig},
+				    $$phased_hets2{$phase_group2}{$contig}
+			);
+
+			# Update totals
+			$total_overlap += $tally_overlap;
+			$total_same    += $tally_same;
+			$total_cross   += $tally_cross;
+
+			# Output
+			print $ofh2 $lines;
+			print $ofh3 $cross_overs;
+
+			$found_in_both++;
+
+			# Same contig in the 2 different phase groups
+			#my $found = 0;
+			#POSITIONS1: foreach my $positions(sort keys %{$$phased_hets1{$phase_group1}{$contig}}) {
+			#	next POSITIONS1 if(!exists $$phased_hets2{$phase_group2}{$contig}{$positions});
+			#	$found++;
+
+			#	# Look for overlaps of at least 2
+			#	if($found >= 2) {
+			#		my ($lines, $cross_overs, $tally_overlap, $tally_same, $tally_cross) = &make_printable_lines($found_in_both, $contig, $$phased_hets1{$phase_group1}{$contig}, $$phased_hets2{$phase_group2}{$contig});
+			#		$total_overlap += $tally_overlap;
+			#		$total_same += $tally_same;
+			#		$total_cross += $tally_cross;
+			#		print $ofh2 "$lines";
+			#		print $ofh3 "$cross_overs";
+			#		$found_in_both++;
+			#		#next PHASEGROUP1;
+			#	}
+			#}
 		}
 	}
 }
@@ -183,3 +213,4 @@ sub make_printable_lines {
 	}
 	return ($group_of_lines, $cross_over_lines, $tally_overlap, $tally_same, $tally_cross);
 }
+warn "Finished.\n";

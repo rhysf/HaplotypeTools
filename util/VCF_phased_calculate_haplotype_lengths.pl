@@ -1,9 +1,9 @@
 #!/usr/bin/perl -w
 use strict;
 use FindBin qw($Bin);
-use lib "$Bin/../modules";
+use lib "$Bin/modules";
 use read_VCF;
-use lib "/home/unix/rfarrer/perl5/lib/perl5/";
+#use lib "/home/unix/rfarrer/perl5/lib/perl5/";
 use Hash::Merge qw(merge);
 use Getopt::Std;
 use Data::Dumper;

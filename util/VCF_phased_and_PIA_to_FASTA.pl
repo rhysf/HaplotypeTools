@@ -2,13 +2,13 @@
 use strict;
 use Getopt::Std;
 use FindBin qw($Bin);
-use lib "$Bin/../modules";
+use lib "$Bin/modules";
 use read_FASTA;
 use read_Tab;
 use VCF_phase;
 use Data::Dumper;
 
-### rfarrer@broadinstitute.org
+### r.farrer@exeter.ac.uk
 
 # Opening commands 
 my $usage = "Usage: perl $0 -v <VCF file> -l <PIA file (contig tab start tab stop)> -r <Reference FASTA>\n

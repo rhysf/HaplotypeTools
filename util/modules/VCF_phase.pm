@@ -15,7 +15,7 @@ use lib "$Bin/modules";
 use read_VCF;
 use read_BAM;
 
-### rfarrer@broadinstitute.org
+### r.farrer@exeter.ac.uk
 
 sub prepare_HT_data {
 	my ($platform, $bams, $cutoff, $ref_fasta, $run_grid, $min_depth, $out_folder, $out_VCF, $queue, $max_phase_length, $steps, $sample_names, $VCF_input, $summary) = @_;
@@ -452,7 +452,7 @@ sub VCF_phased_to_phase_group_contig_pos_to_bases {
 	my %phased_hets;
 	my $count = 0;
 	open my $fh, '<', $file or die "Cannot open $file : $!\n";
-	warn "Reading $file...\n";
+	warn "VCF_phased_to_phase_group_contig_pos_to_bases: Reading $file...\n";
 	VCF1: while (my $line = <$fh>) {
    		chomp $line;
 		my ($VCF_line) = vcflines::read_VCF_lines($line);
@@ -504,7 +504,7 @@ sub VCF_phased_to_phase_group_contig_pos_to_bases {
 
 	# Add info to summary
 	my $summary = "$file: Found " . scalar(keys(%phased_hets)) . " phase groups over $count positions";
-	warn "summary\n";
+	warn "$summary\n";
 	print $ofh "$summary\n";
 
 	return(\%phased_hets);

@@ -1,9 +1,9 @@
 #!/usr/bin/perl -w
 use strict;
 use Getopt::Std;
-use lib "/home/unix/rfarrer/perl5/lib/perl5/x86_64-linux-thread-multi/";
+#use lib "/home/unix/rfarrer/perl5/lib/perl5/x86_64-linux-thread-multi/";
 use FindBin qw($Bin);
-use lib "$Bin/../modules";
+use lib "$Bin/modules";
 use VCF_phase;
 
 ### rfarrer@broadinstitute.org

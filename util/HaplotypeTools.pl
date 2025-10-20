@@ -2,7 +2,7 @@
 use strict;
 use Getopt::Std;
 use Data::Dumper;
-use lib "/home/unix/rfarrer/perl5/lib/perl5/x86_64-linux-thread-multi/";
+#use lib "/home/unix/rfarrer/perl5/lib/perl5/x86_64-linux-thread-multi/";
 use FindBin qw($Bin);
 use lib "$Bin/modules";
 use read_BAM;

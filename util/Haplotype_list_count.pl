@@ -2,7 +2,7 @@
 use strict;
 use Bio::SeqIO;
 
-### rfarrer@broadinstitute.org
+### r.farrer@exeter.ac.uk
 
 # Opening commands
 my $usage = "Usage: perl $0 <haplotypes list> <full sequence file>\n";

@@ -3,7 +3,7 @@ use strict;
 use Getopt::Std;
 use Data::Dumper;
 use FindBin qw($Bin);
-use lib "$Bin/../modules";
+use lib "$Bin/modules";
 use read_VCF;
 use VCF_phase;
 use File::Basename;

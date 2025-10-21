@@ -83,23 +83,28 @@ For issues, questions, comments or feature requests, please check or post to the
 * 21 June 2021 
   - Stable release
 
-## Getting started / example pipeline for phasing individual sample
+## Example pipeline for phasing individual sample
 
 ```bash
 git clone git@github.com:rhysf/HaplotypeTools.git
 cd HaplotypeTools/
-./haplotypetools -v <vcf> -b <sorted BAM> -u <VCF sample name> -f <reference.fasta>
+./haplotypetools \
+  -v example/Hybrid-SA.vcf-chr1.vcf \
+	-b example/Hybrid-SA.vcf-chr1.bam \
+	-u Hybrid-SA-EC3 \
+	-f example/Hybrid-SA.vcf-chr1.fasta
 perl util/VCF_phased_to_PIA.pl \
-	-v <vcf-Phased-m-4-c-90-r-10000.vcf> \
-	-f <reference.fasta>
+  -v example/Hybrid-SA.vcf-chr1.vcf-Phased-m-4-c-90-r-100000.vcf \
+  -f example/Hybrid-SA.vcf-chr1.fasta
 perl util/VCF_phased_and_PIA_to_FASTA.pl \
-	-v <vcf-Phased-m-4-c-90-r-10000.vcf> \
-	-l <vcf-Phased-m-4-c-90-r-10000.vcf-PIA-p-1-c-10-s-all.tab> \
-	-r <reference.fasta>
+  -v example/Hybrid-SA.vcf-chr1.vcf-Phased-m-4-c-90-r-100000.vcf \
+  -l example/Hybrid-SA.vcf-chr1.vcf-Phased-m-4-c-90-r-100000.vcf-PIA-p-1-c-10-s-all.tab \
+  -r example/Hybrid-SA.vcf-chr1.fasta
 perl util/FASTA_compare_sequences.pl \
-	-f <vcf-Phased-m-4-c-90-r-10000.vcf-PIA-p-1-c-10-s-all.tab_1.fasta> \
-	-a <vcf-Phased-m-4-c-90-r-10000.vcf-PIA-p-1-c-10-s-all.tab_2.fasta> \ 
-	-o a > summary
+  -f example/Hybrid-SA.vcf-chr1.vcf-Phased-m-4-c-90-r-100000.vcf-PIA-p-1-c-10-s-all.tab_1.fasta \
+  -a example/Hybrid-SA.vcf-chr1.vcf-Phased-m-4-c-90-r-100000.vcf-PIA-p-1-c-10-s-all.tab_2.fasta \
+  -o a \
+  > example/haplotypes_length_and_pc_similarity.tab
 ```
 
 ## Example pipeline for phasing multi sample VCF

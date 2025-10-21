@@ -2,7 +2,6 @@
 use strict;
 use Getopt::Std;
 use Data::Dumper;
-#use lib "/home/unix/rfarrer/perl5/lib/perl5/x86_64-linux-thread-multi/";
 use FindBin qw($Bin);
 use lib "$Bin/modules";
 use read_BAM;
@@ -10,13 +9,13 @@ use read_FASTA;
 use read_VCF;
 use VCF_phase;
 
-### rfarrer@broadinstitute.org
+### r.farrer@exeter.ac.uk
 
 # Opening commands 
 my $usage = "Usage: perl $0 -v <VCF> -b <sorted BAMs (separated by comma)> -u <VCF sample names in order of input BAM files (separated by comma)> -f <reference fasta>
 Optional: -c\tCut-off percent reads supporting phase group [90]
           -m\tMinimum read depth overlapping two heterozygous positions [4]
-          -r\tMax phase length [10000]
+          -r\tMax phase length [100000]
           -s\tSteps (1=process VCF, 2=process BAM, 3=assign read info to VCF, 4=validate and assign phase groups, 5=concatenate) [12345]\n
 Parallel: -g\tRun commands on the grid (y/n) [n]
           -a\tPlatform (UGER, LSF, GridEngine) [UGER]
@@ -31,7 +30,7 @@ if(!defined $opt_a) { $opt_a = 'UGER'; }
 if(!defined $opt_c) { $opt_c = 90; }
 if(!defined $opt_g) { $opt_g = 'n'; }
 if(!defined $opt_m) { $opt_m = 4; }
-if(!defined $opt_r) { $opt_r = 10000; }
+if(!defined $opt_r) { $opt_r = 100000; }
 if(!defined $opt_s) { $opt_s = 12345; }
 if(!defined $opt_q) { $opt_q = 'short'; }
 if(!defined $opt_o) { $opt_o = $opt_v . '-HaplotypeTools-phased-r-' . $opt_r; }
@@ -46,9 +45,9 @@ print Dumper($HT_data);
 if(! -d $$HT_data{'out_folder'}) { my $cmd1 = `mkdir $$HT_data{'out_folder'}`; }
 
 # Dependencies
-my $VCF_phase_script = "$Bin/util/VCF_phase.pl";
-my $VCF_phase_validate_and_assign_script = "$Bin/util/VCF_phased_validate_and_assign_phase_groups.pl";
-my $Run_Commands_python = "$Bin/util/Run_cmds_on_grid.py";
+my $VCF_phase_script = "$Bin/VCF_phase.pl";
+my $VCF_phase_validate_and_assign_script = "$Bin/VCF_phased_validate_and_assign_phase_groups.pl";
+my $Run_Commands_python = "$Bin/Run_cmds_on_grid.py";
 foreach($VCF_phase_script, $VCF_phase_validate_and_assign_script, $Run_Commands_python) { die "Cannot find dependency script $_ : $!\n" if(! -e $_); }
 
 # Save names and length of reference sequence

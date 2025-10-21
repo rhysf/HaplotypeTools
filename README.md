@@ -176,6 +176,18 @@ perl util/VCF_phased_compare_to_VCF_phased.pl \
 	-o sample1_vs_sample2
 ```
 
+Note that a new output is the 'Positions-Refined.tab', which includes cutoffs (currently hard coded in VCF_phased_compare_to_VCF_phased) for distinguishing:
+ - Crossover_likely_gene_conversion (crossovers < 1kb from each other, or < 3 supporting phased hets either side of the crossover, compared with 
+ - Crossover_meiosis_candidate (crossovers >= 1kb and >= phased hets per side).
+ - Cross-over_unresolved (anything that either has a distance < 1 kb or < 3 phased sites either side)
+
+The next step might be to plot the distances of 'all crossovers' (or subset the files to only those of interest e.g., Crossover_meiosis_candidate) either for a single Phase-Positions.tab or a file with the locations of many Phase-Positions.tab's included as a single column:
+
+```bash
+Rscript ./HaplotypeTools/util/plot_distance_of_crossovers_many_files.R file_of_all_phased_positions.txt
+Rscript ./HaplotypeTools/util/plot_distance_of_crossovers.R vcf-HaplotypeTools_VCF1_vs_VCF2-Phase-Positions.tab
+```
+
 ## Example pipeline using test data (chr1 Bd) to phase individual sample and plot haploytpe windows
 
 ```bash

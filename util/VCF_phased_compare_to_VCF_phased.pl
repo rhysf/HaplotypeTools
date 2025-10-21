@@ -102,8 +102,8 @@ my $distance_threshold = 1000;  # <1kb = likely gene conversion
 my $support_threshold  = 3;     # ≥3 phased hets per side
 my ($count_meiosis, $count_conversion) = (0, 0);
 
-foreach my $pg (keys %crossovers_by_group) {
-    foreach my $contig (keys %{ $crossovers_by_group{$pg} }) {
+foreach my $pg (sort keys %crossovers_by_group) {
+    foreach my $contig (sort keys %{ $crossovers_by_group{$pg} }) {
         my @positions = sort { $a <=> $b } @{ $crossovers_by_group{$pg}{$contig} };
 
         for (my $i = 0; $i < @positions; $i++) {
@@ -117,7 +117,7 @@ foreach my $pg (keys %crossovers_by_group) {
             $min_dist = $dist_next if defined $dist_next && (!defined $min_dist || $dist_next < $min_dist);
 
             # default classification
-            my $class = "Cross-over";
+            my $class = "Cross-over_unresolved";
 
             if (defined $min_dist && $min_dist < $distance_threshold) {
                 $class = "Crossover_likely_gene_conversion";

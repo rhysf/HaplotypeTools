@@ -61,8 +61,8 @@ For issues, questions, comments or feature requests, please check or post to the
 
 ## Prerequisites:
 
-* R (plyr, RColorBrewer)
-* Perl
+* R (plyr, RColorBrewer, data.table, ggplot2, tools)
+* Perl 5 (tested on version 34)
 * Bio::SeqIO
 * Bio::DB::HTS
 * Samtools v0.1.10 or higher (samtools.sourceforge.net)

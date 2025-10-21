@@ -3,12 +3,11 @@ use strict;
 use FindBin qw($Bin);
 use lib "$Bin/modules";
 use read_VCF;
-#use lib "/home/unix/rfarrer/perl5/lib/perl5/";
 use Hash::Merge qw(merge);
 use Getopt::Std;
 use Data::Dumper;
 
-### rfarrer@broadinstitute.org
+### r.farrer@exeter.ac.uk
 
 # Opening commands
 my $usage = "Usage: perl $0 -v <Phased VCF file (with optional additional VCFs separated by comma)>\n
@@ -21,6 +20,7 @@ if(!defined $opt_e) { $opt_e = 'n'; }
 my @vcf_files = split /,/, $opt_v;
 
 # Go through each VCF get phase info
+my $merger = Hash::Merge->new('LEFT_PRECEDENT');
 my (%counts, %types_found);
 foreach my $file(@vcf_files) {
 	die "Cannot open $file : $!" unless (-e $file);
@@ -33,8 +33,8 @@ foreach my $file(@vcf_files) {
 			next if($found eq 0);
 			warn "Found $sample_name in $file...\n";
 			my ($counts_temp, $types_found_temp) = vcflines::parse_VCF($file, 'none', 'all', 'n', $sample_name);	
-			%counts = %{merge(\%counts, $counts_temp)};
-			%types_found = %{merge(\%types_found, $types_found_temp)};
+			%counts = $merger->merge(\%counts, $counts_temp);
+			%types_found = $merger->merge(\%types_found, $types_found_temp);
 		}
 	} 
 	# Everything
@@ -45,15 +45,15 @@ foreach my $file(@vcf_files) {
 			my $sample_name = $$all_sample_names{$sample_numbers};
 			warn "Found $sample_name in $file...\n";
 			my ($counts_temp, $types_found_temp) = vcflines::parse_VCF($file, 'none', 'all', 'n', $sample_name);
-			%counts = %{merge(\%counts, $counts_temp)};
-			%types_found = %{merge(\%types_found, $types_found_temp)};
+			%counts = $merger->merge(\%counts, $counts_temp);
+			%types_found = $merger->merge(\%types_found, $types_found_temp);
 		}
 	}
 	# Otherwise the first sample is fine
 	else {
 		my ($counts_temp, $types_found_temp) = vcflines::parse_VCF($file, 'none', 'all', 'n', 'WGS');
-		%counts = %{merge(\%counts, $counts_temp)};
-		%types_found = %{merge(\%types_found, $types_found_temp)};
+		%counts = $merger->merge(\%counts, $counts_temp);
+		%types_found = $merger->merge(\%types_found, $types_found_temp);
 	}
 }
 #print "Dumper:\n";

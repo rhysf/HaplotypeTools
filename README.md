@@ -63,9 +63,8 @@ For issues, questions, comments or feature requests, please check or post to the
 
 * R (plyr, RColorBrewer)
 * Perl
-* BioPerl
+* Bio::SeqIO
 * Bio::DB::HTS
-* Hash::Merge
 * Samtools v0.1.10 or higher (samtools.sourceforge.net)
 * FastTree (http://www.microbesonline.org/fasttree/)
 

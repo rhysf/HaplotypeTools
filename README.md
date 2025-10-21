@@ -8,7 +8,7 @@ All documentation for HaplotypeTools can be found at https://github.com/rhysf/Ha
 
 ## Introduction
 
-**HaplotypeTools** is a coolection of scripts for phasing aligned whole-genome sequencing (WGS) data and analyzing haplotype structure.
+**HaplotypeTools** is a collection of scripts for phasing aligned whole-genome sequencing (WGS) data and analyzing haplotype structure.
 It reconstructs haplotypes from reads that overlap two or more bi-allelic heterozygous positions, allowing direct inference of phase relationships between variants.
 
 Once phased, the resulting VCF files can be:

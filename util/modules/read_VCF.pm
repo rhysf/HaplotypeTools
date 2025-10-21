@@ -547,39 +547,30 @@ sub VCF_struct_determine_bases_and_base_type {
 	my $consensus = $$VCF_struct{'consensus_VCF_format'};
 	my $GT = $$VCF_struct{$GT_id};
 
-	# Determine bases
-	my @all_bases;
-	push @all_bases, $ref_base;
-	my @bases = split /,/, $consensus;
-	foreach(@bases) { push @all_bases, $_; }
-	if($GT =~ m/^(\d)$/) {
-		my $GT1 = $1;
-		$base1 = $all_bases[$GT1];
-		$base2 = 'N';
-	}
-	elsif($GT =~ m/^(\d)([\/\|])(\d)$/) { 
-		my ($GT1, $GT2) = ($1, $3);
-		$base1 = $all_bases[$GT1];
-		$base2 = $all_bases[$GT2];
-	}
-	elsif($GT eq '.') {
-		$base1 = 'N';
-		$base2 = 'N';
-	}
-	else {
-		warn "VCF_struct_determine_bases_and_base_type: determine base failed from $GT\n";
-		return ('N', 'N', 'ambiguous');
-	}
+	# Pull all bases
+	my @all_bases = ($ref_base, split(/,/, $consensus));
+	my @gt_indices = split(/[\/|]/, $GT);
+	my @bases = map { $all_bases[$_] // 'N' } @gt_indices;
 
 	# Determine base type
 
+	my %seen; @seen{@gt_indices} = ();
+    my @unique = keys %seen;
+
+    #my $base_type;
+    #if ($GT eq '.' or grep { $_ eq 'N' } @bases) {
+    #    $base_type = 'ambiguous';
+    #}
+
 	# ambiguous
-	if(($base1 eq 'N') || ($GT eq '.')) { $base_type = 'ambiguous';
+	if(($base1 eq 'N') || ($GT eq '.')) { 
+		$base_type = 'ambiguous';
 		return ($base1, $base2, $base_type);
 	}
 
 	# Homozygous reference
-	if($GT eq 0) { $base_type = 'reference'; 
+	if($GT eq 0) { 
+		$base_type = 'reference'; 
 		return ($base1, $base2, $base_type);
 	}
 
@@ -587,7 +578,8 @@ sub VCF_struct_determine_bases_and_base_type {
 	if(($GT ne 0) && ($GT =~ m/^(\d)$/)) {
 
 		# Homozygous SNP
-		if((length($ref_base) eq length($base1)) && (length($ref_base) eq 1)) { $base_type = 'snp'; 
+		if((length($ref_base) eq length($base1)) && (length($ref_base) eq 1)) { 
+			$base_type = 'snp'; 
 			return ($base1, $base2, $base_type);
 		}
 
@@ -646,7 +638,8 @@ sub VCF_struct_determine_bases_and_base_type {
 		if(length($base1) < length($base2)) { $base_type = 'het_deletion'; }
 		return ($base1, $base2, $base_type);
 	}
-	#return ($base1, $base2, $base_type);
+
+	return ($bases[0] // 'N', $bases[1] // 'N', $base_type);
 }
 
 1;

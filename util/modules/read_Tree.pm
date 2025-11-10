@@ -73,7 +73,8 @@ sub save_pairwise_distances_from_tree {
 	my %pairwise_distances_with_cluster_name;
 	$pairwise_distances_with_cluster_name{$cluster} = $pairwise_distances;
 	my $merger = Hash::Merge->new('LEFT_PRECEDENT');
-	%trees_struct = $merger->merge( \%trees_struct, \%pairwise_distances_with_cluster_name );
+	#%trees_struct = $merger->merge( \%trees_struct, \%pairwise_distances_with_cluster_name );
+	%trees_struct = %{ $merger->merge(\%trees_struct, \%pairwise_distances_with_cluster_name) };
 
 	return \%trees_struct;
 }

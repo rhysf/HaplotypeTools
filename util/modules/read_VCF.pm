@@ -11,7 +11,7 @@ $VERSION = 0.1;
 use Data::Dumper;
 use File::Basename;
 
-### rfarrer@broadinstitute.org
+### r.farrer@exeter.ac.uk
 
 sub read_VCF_lines {
 	my $VCF_line = $_[0];
@@ -119,7 +119,7 @@ sub read_VCF_lines {
 			$VCF_info{($isolate_number . 'phase_group')} = $VCF_info{$pid}; # Not necessary. It's already saved. but for now, keep it so it works with my phasing
 			#die "new code. I've found PID: $VCF_info{$pid} . All good?\n";
 		}
-	}	
+	}
 
 	# Return
 	return \%VCF_info;
@@ -550,17 +550,17 @@ sub VCF_struct_determine_bases_and_base_type {
 	# Pull all bases
 	my @all_bases = ($ref_base, split(/,/, $consensus));
 	my @gt_indices = split(/[\/|]/, $GT);
+
+	# $bases[0] = ref, $bases[1] = cons, $bases[2] = cons2 etc.
 	my @bases = map { $all_bases[$_] // 'N' } @gt_indices;
+	if(defined $bases[0]) { $base1 = $bases[0]; }
+	else { $base1 = 'N'; }
+	if(defined $bases[1]) { $base2 = $bases[1]; }
+	else { $base2 = 'N'; }
 
 	# Determine base type
-
 	my %seen; @seen{@gt_indices} = ();
-    my @unique = keys %seen;
-
-    #my $base_type;
-    #if ($GT eq '.' or grep { $_ eq 'N' } @bases) {
-    #    $base_type = 'ambiguous';
-    #}
+	my @unique = keys %seen;
 
 	# ambiguous
 	if(($base1 eq 'N') || ($GT eq '.')) { 
@@ -639,7 +639,7 @@ sub VCF_struct_determine_bases_and_base_type {
 		return ($base1, $base2, $base_type);
 	}
 
-	return ($bases[0] // 'N', $bases[1] // 'N', $base_type);
+	return ($bases[0], $bases[1], $base_type);
 }
 
 1;

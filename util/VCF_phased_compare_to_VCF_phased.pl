@@ -38,7 +38,7 @@ if($opt_a && $opt_b) {
 	$phased_hets1 = vcfphase::VCF_phased_to_phase_group_contig_pos_to_bases($opt_a, $ofh1, 0);
 	$phased_hets2 = vcfphase::VCF_phased_to_phase_group_contig_pos_to_bases($opt_b, $ofh1, 0); 
 }
-# One VCF
+# Two samples in one multi sample VCF
 else {
 	# Find sample numbers
 	my ($sample_number1, $sample_found1) = vcflines::VCF_and_sample_name_to_sample_number($opt_a, $opt_c);
@@ -51,6 +51,8 @@ else {
 warn "Comparing phase groups...\n";
 my ($found_in_both, $total_overlap, $total_same, $total_cross) = (0,0,0,0);
 my %crossovers_by_group;
+my %seen_position;  # contig -> pos -> 1
+
 
 PHASEGROUP1: foreach my $pg1(sort keys %{$phased_hets1}) {
 	#warn "$pg1 / " . scalar(keys(%phased_hets1)) . "\n";
@@ -59,9 +61,7 @@ PHASEGROUP1: foreach my $pg1(sort keys %{$phased_hets1}) {
 			next PHASEGROUP2 if(!exists $$phased_hets2{$pg2}{$contig});
 
 			# Collect shared positions
-			my @shared_positions = grep {
-				exists $$phased_hets2{$pg2}{$contig}{$_}
-			} keys %{$$phased_hets1{$pg1}{$contig}};
+			my @shared_positions = grep { exists $$phased_hets2{$pg2}{$contig}{$_} } keys %{$$phased_hets1{$pg1}{$contig}};
 
 			# Require at least two heterozygous overlaps to compare phase
 			next unless scalar(@shared_positions) >= 2;
@@ -74,6 +74,16 @@ PHASEGROUP1: foreach my $pg1(sort keys %{$phased_hets1}) {
 				    $$phased_hets1{$pg1}{$contig},
 				    $$phased_hets2{$pg2}{$contig}
 			);
+
+			# Filter lines so each contig-position appears only once
+            my @unique_lines;
+            for my $line (split /\n/, $lines) {
+                my @c = split /\t/, $line;
+                my ($cg, $pos) = @c[1,2];
+                next if $seen_position{$cg}{$pos};
+                $seen_position{$cg}{$pos} = 1;
+                push @unique_lines, $line;
+            }
 
 			# Update totals
 			$total_overlap += $overlap;

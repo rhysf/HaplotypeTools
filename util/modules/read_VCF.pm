@@ -547,9 +547,15 @@ sub VCF_struct_determine_bases_and_base_type {
 	my $consensus = $$VCF_struct{'consensus_VCF_format'};
 	my $GT = $$VCF_struct{$GT_id};
 
+	# ambiguous
+	if($GT eq '.') { 
+		$base_type = 'ambiguous';
+		return ($base1, $base2, $base_type);
+	}
+
 	# Pull all bases
 	my @all_bases = ($ref_base, split(/,/, $consensus));
-	my @gt_indices = split(/[\/|]/, $GT);
+	my @gt_indices = split(/[\/|]/, $GT);	
 
 	# $bases[0] = ref, $bases[1] = cons, $bases[2] = cons2 etc.
 	my @bases = map { $all_bases[$_] // 'N' } @gt_indices;
@@ -563,7 +569,7 @@ sub VCF_struct_determine_bases_and_base_type {
 	my @unique = keys %seen;
 
 	# ambiguous
-	if(($base1 eq 'N') || ($GT eq '.')) { 
+	if($base1 eq 'N') { 
 		$base_type = 'ambiguous';
 		return ($base1, $base2, $base_type);
 	}
